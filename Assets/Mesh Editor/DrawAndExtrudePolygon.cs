@@ -23,6 +23,9 @@ namespace ProBuilder.Examples
         public Button downButton;
         public TextMeshProUGUI text;
 
+        // New TMP_InputField for extrusion height
+        public TMP_InputField heightInputField;
+
         private List<Vector3> points = new List<Vector3>();
         private ProBuilderMesh selectedMesh = null;
         private float originalHeight; // Store original height of the mesh
@@ -34,7 +37,7 @@ namespace ProBuilder.Examples
             InitializeLineRenderer();
 
             // Setup button listeners for extrusion
-            upButton.onClick.AddListener(() => ExtrudeSelectedMesh(extrudeAmount));
+            upButton.onClick.AddListener(() => ExtrudeSelectedMesh(GetExtrudeHeight()));
             downButton.onClick.AddListener(() => RevertMeshOrDestroy());
             createModeButton.onClick.AddListener(ToggleCreateMode); // Assign toggle function
             extrudeButton.onClick.AddListener(ToggleExtrudeMode); // Assign toggle function
@@ -42,6 +45,10 @@ namespace ProBuilder.Examples
             // Hide the popup canvas initially
             popupCanvas.gameObject.SetActive(false);
             extrudeButton.interactable = false; // Initially disable the extrude button
+
+            // Ensure height input field has a default value
+            heightInputField.text = m_Height.ToString();
+            heightInputField.onValueChanged.AddListener(OnHeightInputChanged);
         }
 
         void Update()
@@ -54,6 +61,11 @@ namespace ProBuilder.Examples
 
             // Handle selecting, deselecting, and UI popup state based on raycast
             HandleMeshSelection();
+
+            if(Input.GetMouseButtonDown(1))
+            {
+                HidePopup();
+            }
         }
 
         void InitializeLineRenderer()
@@ -214,6 +226,7 @@ namespace ProBuilder.Examples
 
         private void ToggleCreateMode()
         {
+            m_Height = 0.25f;
             DeselectCurrentMesh(); // Deselect any current mesh when switching modes
             points.Clear(); // Clear points for new mesh creation
             lineRenderer.positionCount = 0; // Reset line renderer
@@ -263,6 +276,30 @@ namespace ProBuilder.Examples
                 Destroy(selectedMesh.gameObject);
                 DeselectCurrentMesh(); // Deselect the current mesh
                 Debug.Log("Destroyed the flat mesh.");
+            }
+        }
+
+        // New method to get the extrusion height from the input field
+        private float GetExtrudeHeight()
+        {
+            float height;
+            // Try to parse the height input, fall back to the default height if parsing fails
+            if (!float.TryParse(heightInputField.text, out height))
+            {
+                height = m_Height;
+            }
+
+            return height;
+        }
+
+        // Event to listen for changes in the height input field
+        private void OnHeightInputChanged(string value)
+        {
+            // Try to parse the value and update the extrusion height
+            if (!float.TryParse(value, out m_Height))
+            {
+                m_Height = 1f; // Reset to default if parsing fails
+                heightInputField.text = m_Height.ToString(); // Update input field display
             }
         }
     }
