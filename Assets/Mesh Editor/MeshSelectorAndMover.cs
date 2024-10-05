@@ -1,9 +1,12 @@
 using UnityEngine;
 
-public class MeshSelectorAndMover: MonoBehaviour
+public class MeshSelectorAndMover : MonoBehaviour
 {
     private Camera mainCamera;        // Reference to the main camera
     private Transform selectedObject; // The currently selected object to move
+    private Vector3 targetPosition;   // The target position for the selected object
+    public float smoothSpeed = 0.1f;  // Speed of the smooth movement
+    private bool isMoving = false;     // Flag to indicate if an object is being moved
 
     void Start()
     {
@@ -28,6 +31,13 @@ public class MeshSelectorAndMover: MonoBehaviour
         if (Input.GetMouseButtonUp(0))
         {
             selectedObject = null;
+            isMoving = false; // Reset moving flag when the object is released
+        }
+
+        // Smoothly move the selected object towards the target position
+        if (isMoving && selectedObject != null)
+        {
+            selectedObject.position = Vector3.Lerp(selectedObject.position, targetPosition, smoothSpeed);
         }
     }
 
@@ -41,6 +51,7 @@ public class MeshSelectorAndMover: MonoBehaviour
         if (Physics.Raycast(ray, out hit) && hit.collider.CompareTag("GeneratedMesh"))
         {
             selectedObject = hit.transform; // Store the selected object to be moved
+            isMoving = true; // Set moving flag to true
         }
     }
 
@@ -53,8 +64,8 @@ public class MeshSelectorAndMover: MonoBehaviour
         // Perform a raycast to detect the "Floor" collider
         if (Physics.Raycast(ray, out hit) && hit.collider.CompareTag("Floor"))
         {
-            // Move the selected object to the hit point of the floor collider
-            selectedObject.position = new Vector3(hit.point.x, selectedObject.position.y, hit.point.z);
+            // Update target position to the hit point of the floor collider
+            targetPosition = new Vector3(hit.point.x, selectedObject.position.y, hit.point.z);
         }
     }
 }

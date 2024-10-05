@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using TMPro;
 using UnityEngine.UI;
 using UnityEngine.EventSystems;
+using System.Linq;
 using UnityEngine.ProBuilder.MeshOperations;
 
 namespace ProBuilder.Examples
@@ -28,7 +29,6 @@ namespace ProBuilder.Examples
 
         private List<Vector3> points = new List<Vector3>();
         private ProBuilderMesh selectedMesh = null;
-        private float originalHeight; // Store original height of the mesh
 
         private const float extrudeAmount = 0.1f;
 
@@ -62,7 +62,7 @@ namespace ProBuilder.Examples
             // Handle selecting, deselecting, and UI popup state based on raycast
             HandleMeshSelection();
 
-            if(Input.GetMouseButtonDown(1))
+            if (Input.GetMouseButtonDown(1))
             {
                 HidePopup();
             }
@@ -90,12 +90,11 @@ namespace ProBuilder.Examples
             ApplyLineColor();
         }
 
-        void UpdateMesh()
+        private void UpdateMesh()
         {
             if (points.Count < 3) return;
 
             var newMesh = CreateMeshFromPoints(points.ToArray());
-            originalHeight = m_Height; // Store the original height
             points.Clear(); // Clear points to allow for new mesh creation
 
             Debug.Log("Mesh Created!");
@@ -109,6 +108,9 @@ namespace ProBuilder.Examples
             mesh.CreateShapeFromPolygon(points, m_Height, m_FlipNormals);
             mesh.ToMesh();
             mesh.Refresh();
+
+            // Center the pivot over the mesh
+            CenterPivot(mesh);
 
             // Apply the assigned material
             var renderer = go.GetComponent<Renderer>();
@@ -124,6 +126,31 @@ namespace ProBuilder.Examples
             go.tag = "GeneratedMesh";
 
             return mesh;
+        }
+
+        private void CenterPivot(ProBuilderMesh mesh)
+        {
+            // Calculate the bounds of the mesh
+            Bounds bounds = mesh.GetComponent<MeshFilter>().sharedMesh.bounds;
+
+            // Calculate the offset to move the mesh to the center
+            Vector3 centerOffset = bounds.center;
+
+            // Move the mesh's transform to center the pivot
+            mesh.transform.position += centerOffset;
+
+            // Get the current vertices as a Vector3 array
+            Vector3[] vertices = mesh.positions.ToArray(); // Convert to array using ToArray()
+
+            // Adjust the vertices to keep the geometry in place
+            for (int i = 0; i < vertices.Length; i++)
+            {
+                vertices[i] -= centerOffset; // Move vertices to keep the mesh geometry intact
+            }
+
+            // Assign the adjusted vertices back to the mesh
+            mesh.positions = vertices; // Reassign the positions
+            mesh.ToMesh(); // Update the mesh after changing the vertices
         }
 
         private void UpdateLineRenderer()
@@ -251,7 +278,11 @@ namespace ProBuilder.Examples
                 selectedMesh.Extrude(new List<Face>() { selectedMesh.faces[0] }, ExtrudeMethod.FaceNormal, amount);
                 selectedMesh.ToMesh();
                 selectedMesh.Refresh();
-                selectedMesh.GetComponent<MeshCollider>().sharedMesh = selectedMesh.GetComponent<MeshFilter>().sharedMesh;
+                selectedMesh.GetComponent<MeshCollider>().sharedMesh = selectedMesh.GetComponent<MeshFilter>().sharedMesh; // Update mesh collider
+            }
+            else if (amount < 0) // Revert mesh or destroy
+            {
+                RevertMeshOrDestroy();
             }
         }
 
@@ -259,47 +290,26 @@ namespace ProBuilder.Examples
         {
             if (selectedMesh == null) return;
 
-            // Check the current height of the selected mesh
-            var currentHeight = selectedMesh.GetComponent<MeshFilter>().sharedMesh.bounds.size.y;
-
-            if (currentHeight > originalHeight) // If the mesh is extruded, revert to original height
-            {
-                // Reverse the extrusion by resetting the mesh to original state
-                selectedMesh.Extrude(new List<Face>() { selectedMesh.faces[0] }, ExtrudeMethod.FaceNormal, -extrudeAmount);
-                selectedMesh.ToMesh();
-                selectedMesh.Refresh();
-                selectedMesh.GetComponent<MeshCollider>().sharedMesh = selectedMesh.GetComponent<MeshFilter>().sharedMesh;
-                Debug.Log("Reverted the mesh to original state.");
-            }
-            else // If the mesh is flat, destroy it
-            {
-                Destroy(selectedMesh.gameObject);
-                DeselectCurrentMesh(); // Deselect the current mesh
-                Debug.Log("Destroyed the flat mesh.");
-            }
+            Destroy(selectedMesh.gameObject); // Destroy the selected mesh
+            selectedMesh = null; // Clear selected mesh reference
+            HidePopup(); // Hide popup when no mesh is selected
         }
 
-        // New method to get the extrusion height from the input field
         private float GetExtrudeHeight()
         {
-            float height;
-            // Try to parse the height input, fall back to the default height if parsing fails
-            if (!float.TryParse(heightInputField.text, out height))
+            if (float.TryParse(heightInputField.text, out float height))
             {
-                height = m_Height;
+                return height;
             }
-
-            return height;
+            return m_Height; // Return default height if parsing fails
         }
 
-        // Event to listen for changes in the height input field
-        private void OnHeightInputChanged(string value)
+        private void OnHeightInputChanged(string newValue)
         {
-            // Try to parse the value and update the extrusion height
-            if (!float.TryParse(value, out m_Height))
+            // Try parsing the new height input value
+            if (float.TryParse(newValue, out float newHeight))
             {
-                m_Height = 1f; // Reset to default if parsing fails
-                heightInputField.text = m_Height.ToString(); // Update input field display
+                m_Height = newHeight;
             }
         }
     }
