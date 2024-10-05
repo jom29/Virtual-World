@@ -15,21 +15,23 @@ public class FirstPersonController : MonoBehaviour
     {
         controller = GetComponent<CharacterController>();
         playerCamera = GetComponentInChildren<Camera>();
-        // Cursor.lockState = CursorLockMode.Locked; // Remove this line to keep the cursor enabled
     }
 
     private void Update()
     {
-        // Camera Rotation
-        float mouseX = Input.GetAxis("Mouse X") * mouseSensitivity;
-        float mouseY = Input.GetAxis("Mouse Y") * mouseSensitivity;
+        // Camera Rotation (only if right mouse button is held down)
+        if (Input.GetMouseButton(1)) // 1 corresponds to the right mouse button
+        {
+            float mouseX = Input.GetAxis("Mouse X") * mouseSensitivity;
+            float mouseY = Input.GetAxis("Mouse Y") * mouseSensitivity;
 
-        Vector3 rotation = playerCamera.transform.localEulerAngles;
-        rotation.x -= mouseY;
-        rotation.y += mouseX;
-        rotation.z = 0; // Lock Z rotation
+            Vector3 rotation = playerCamera.transform.localEulerAngles;
+            rotation.x -= mouseY;
+            rotation.y += mouseX;
+            rotation.z = 0; // Lock Z rotation
 
-        playerCamera.transform.localEulerAngles = rotation;
+            playerCamera.transform.localEulerAngles = rotation;
+        }
 
         // Movement
         isGrounded = controller.isGrounded;
