@@ -52,6 +52,8 @@ public class MeshSelectorAndMover : MonoBehaviour
         {
             selectedObject = hit.transform; // Store the selected object to be moved
             isMoving = true; // Set moving flag to true
+            // Set the initial target position to the current position of the selected object
+            targetPosition = selectedObject.position; // Keep the Y value fixed
         }
     }
 
@@ -64,7 +66,7 @@ public class MeshSelectorAndMover : MonoBehaviour
         // Perform a raycast to detect the "Floor" collider
         if (Physics.Raycast(ray, out hit) && hit.collider.CompareTag("Floor"))
         {
-            // Update target position to the hit point of the floor collider
+            // Update target position to the hit point of the floor collider while maintaining the Y position
             targetPosition = new Vector3(hit.point.x, selectedObject.position.y, hit.point.z);
         }
     }
