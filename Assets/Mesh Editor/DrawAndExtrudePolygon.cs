@@ -2,6 +2,8 @@ using UnityEngine;
 using UnityEngine.ProBuilder;
 using System.Collections.Generic;
 using TMPro;
+using UnityEngine.UI;
+using UnityEngine.EventSystems;
 using UnityEngine.ProBuilder.MeshOperations;
 
 namespace ProBuilder.Examples
@@ -10,111 +12,110 @@ namespace ProBuilder.Examples
     {
         public float m_Height = 1f;
         public bool m_FlipNormals = false;
-        public Material targetMaterial; // Public material to assign in Inspector
-        public int vertexCount = 5; // Predefined number of vertices
-        public LineRenderer lineRenderer; // Reference to the LineRenderer
-        public float lineWidth = 0.01f; // Public variable for line width
-        public Color lineColor = Color.white; // Public variable for line color
+        public Material targetMaterial; // Material to be applied
+        public LineRenderer lineRenderer;
+        public float lineWidth = 0.01f;
+        public Color lineColor = Color.white;
+        public Canvas popupCanvas;
+        public Button createModeButton; // Button to toggle creation mode
+        public Button extrudeButton; // Button to extrude
+        public Button upButton;
+        public Button downButton;
+        public TextMeshProUGUI text;
 
         private List<Vector3> points = new List<Vector3>();
-        private bool isMeshCreated = false;
-        private ProBuilderMesh m_Mesh;
+        private ProBuilderMesh selectedMesh = null;
+        private float originalHeight; // Store original height of the mesh
 
-        private const float extrudeAmount = 0.1f; // Amount to extrude
-        private float currentExtrusionOffset = 0f; // Track the current offset of the extrusion
-        public TextMeshProUGUI text; // UI text for feedback
+        private const float extrudeAmount = 0.1f;
 
         void Start()
         {
-            // Initialize the LineRenderer
             InitializeLineRenderer();
+
+            // Setup button listeners for extrusion
+            upButton.onClick.AddListener(() => ExtrudeSelectedMesh(extrudeAmount));
+            downButton.onClick.AddListener(() => RevertMeshOrDestroy());
+            createModeButton.onClick.AddListener(ToggleCreateMode); // Assign toggle function
+            extrudeButton.onClick.AddListener(ToggleExtrudeMode); // Assign toggle function
+
+            // Hide the popup canvas initially
+            popupCanvas.gameObject.SetActive(false);
+            extrudeButton.interactable = false; // Initially disable the extrude button
         }
 
         void Update()
         {
-            // Update the LineRenderer positions
+            // Update the LineRenderer with the new points
             UpdateLineRenderer();
 
-            // Check for mouse click only if the mesh hasn't been created
-            if (!isMeshCreated && Input.GetMouseButtonDown(0))
-            {
-                Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
-                RaycastHit hit;
+            // Handle creating new mesh points
+            HandleMouseInput();
 
-                if (Physics.Raycast(ray, out hit))
-                {
-                    // Add the hit point to the points list
-                    points.Add(hit.point);
-                    lineRenderer.positionCount = points.Count; // Update position count
-                    lineRenderer.SetPosition(points.Count - 1, hit.point);
-
-                    // Check if we've reached the predefined vertex count
-                    if (points.Count >= vertexCount)
-                    {
-                        UpdateMesh();
-                        isMeshCreated = true; // Prevent further clicks from adding points
-                    }
-                }
-            }
-
-            // Reset for new shape if mesh is created and clicked again
-            if (isMeshCreated && Input.GetMouseButtonDown(0))
-            {
-                ResetForNewShape();
-            }
+            // Handle selecting, deselecting, and UI popup state based on raycast
+            HandleMeshSelection();
         }
 
         void InitializeLineRenderer()
         {
-            // Create a new GameObject and ProBuilderMesh
             var go = new GameObject("Polygon");
-            m_Mesh = go.AddComponent<ProBuilderMesh>();
+            go.AddComponent<ProBuilderMesh>(); // No need to keep a reference to the mesh here
 
-            // Assign the specified material to the mesh's renderer
             if (go.TryGetComponent<Renderer>(out Renderer renderer))
             {
-                renderer.material = targetMaterial; // Use the assigned material
+                renderer.material = targetMaterial; // Set the assigned material
             }
 
-            // Set up the LineRenderer
             if (lineRenderer == null)
             {
                 lineRenderer = go.AddComponent<LineRenderer>();
             }
-            lineRenderer.positionCount = 0; // Initialize with zero points
-            lineRenderer.startWidth = lineWidth; // Set thin start width
-            lineRenderer.endWidth = lineWidth; // Set thin end width
-            lineRenderer.useWorldSpace = true; // Use world space for positioning
-            ApplyLineColor(); // Apply the line color
+
+            lineRenderer.positionCount = 0;
+            lineRenderer.startWidth = lineWidth;
+            lineRenderer.endWidth = lineWidth;
+            lineRenderer.useWorldSpace = true;
+            ApplyLineColor();
         }
 
         void UpdateMesh()
         {
-            if (points.Count < 3) return; // Need at least 3 points to form a polygon
+            if (points.Count < 3) return;
 
-            // Create the shape from the collected points
-            m_Mesh.CreateShapeFromPolygon(points.ToArray(), m_Height, m_FlipNormals);
+            var newMesh = CreateMeshFromPoints(points.ToArray());
+            originalHeight = m_Height; // Store the original height
+            points.Clear(); // Clear points to allow for new mesh creation
 
-            // Detach ExtrudeMesh from all other polyshapes
-            foreach (var obj in GameObject.FindObjectsByType<ProBuilderMesh>(FindObjectsSortMode.None))
+            Debug.Log("Mesh Created!");
+        }
+
+        ProBuilderMesh CreateMeshFromPoints(Vector3[] points)
+        {
+            var go = new GameObject("GeneratedMesh");
+            var mesh = go.AddComponent<ProBuilderMesh>();
+
+            mesh.CreateShapeFromPolygon(points, m_Height, m_FlipNormals);
+            mesh.ToMesh();
+            mesh.Refresh();
+
+            // Apply the assigned material
+            var renderer = go.GetComponent<Renderer>();
+            if (renderer != null)
             {
-                var extrudeScript = obj.GetComponent<ExtrudeMesh>();
-                if (extrudeScript != null)
-                {
-                    Destroy(extrudeScript); // Remove the script
-                }
+                renderer.material = targetMaterial; // Set the material here
             }
 
-            // Attach ExtrudeMesh to the most recently created mesh
-            var newExtrudeMesh = m_Mesh.gameObject.AddComponent<ExtrudeMesh>();
-            newExtrudeMesh.pbMesh = m_Mesh; // Set the pbMesh reference
+            var meshCollider = go.AddComponent<MeshCollider>();
+            meshCollider.sharedMesh = mesh.GetComponent<MeshFilter>().sharedMesh;
 
-            lineRenderer.positionCount = 0; // Clear the line renderer after mesh creation
+            // Tag the mesh for identification
+            go.tag = "GeneratedMesh";
+
+            return mesh;
         }
 
         private void UpdateLineRenderer()
         {
-            // Keep the line renderer in sync with points
             if (lineRenderer.positionCount != points.Count)
             {
                 lineRenderer.positionCount = points.Count;
@@ -128,16 +129,141 @@ namespace ProBuilder.Examples
 
         private void ApplyLineColor()
         {
-            lineRenderer.startColor = lineColor; // Set line start color
-            lineRenderer.endColor = lineColor; // Set line end color
+            lineRenderer.startColor = lineColor;
+            lineRenderer.endColor = lineColor;
         }
 
-        private void ResetForNewShape()
+        private void HandleMouseInput()
         {
-            // Reset the points and create a new mesh
-            points.Clear();
-            isMeshCreated = false; // Allow new points to be added
-            InitializeLineRenderer(); // Initialize a new LineRenderer and ProBuilderMesh
+            // If the popup canvas is active, we should not add new points
+            if (popupCanvas.gameObject.activeSelf && selectedMesh != null)
+                return;
+
+            if (Input.GetMouseButtonDown(0))
+            {
+                Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
+                if (Physics.Raycast(ray, out RaycastHit hit))
+                {
+                    // Check if clicking on the floor to create new points
+                    if (hit.collider.CompareTag("Floor"))
+                    {
+                        points.Add(hit.point);
+                        lineRenderer.positionCount = points.Count;
+                        lineRenderer.SetPosition(points.Count - 1, hit.point);
+                    }
+                }
+            }
+
+            if (Input.GetKeyDown(KeyCode.Return) && points.Count >= 3)
+            {
+                UpdateMesh(); // Call to create the mesh
+            }
+        }
+
+        private void HandleMeshSelection()
+        {
+            if (Input.GetMouseButtonDown(0) && !EventSystem.current.IsPointerOverGameObject())
+            {
+                Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
+                if (Physics.Raycast(ray, out RaycastHit hit))
+                {
+                    // Check if hitting a generated mesh
+                    if (hit.collider.CompareTag("GeneratedMesh"))
+                    {
+                        // Select the mesh and show popup
+                        selectedMesh = hit.transform.GetComponent<ProBuilderMesh>();
+                        ShowPopup(Input.mousePosition);
+                        text.text = "Selected Mesh: " + selectedMesh.name;
+                        Debug.Log("Selected a Generated Mesh.");
+                        extrudeButton.interactable = true; // Enable the extrude button when a mesh is selected
+                    }
+                    else
+                    {
+                        // Deselect if clicking on other areas
+                        DeselectCurrentMesh();
+                    }
+                }
+                else
+                {
+                    // Deselect when clicking on empty space
+                    DeselectCurrentMesh();
+                }
+            }
+        }
+
+        private void ShowPopup(Vector3 position)
+        {
+            popupCanvas.transform.position = position;
+            popupCanvas.gameObject.SetActive(true);
+        }
+
+        private void DeselectCurrentMesh()
+        {
+            selectedMesh = null;
+            HidePopup(); // Hide popup when no mesh is selected
+            text.text = ""; // Clear the text
+            extrudeButton.interactable = false; // Disable the extrude button
+            Debug.Log("Deselected the current mesh.");
+        }
+
+        private void HidePopup()
+        {
+            popupCanvas.transform.position = new Vector3(-9999, -9999, 0);
+            popupCanvas.gameObject.SetActive(false); // Hide the canvas
+        }
+
+        private void ToggleCreateMode()
+        {
+            DeselectCurrentMesh(); // Deselect any current mesh when switching modes
+            points.Clear(); // Clear points for new mesh creation
+            lineRenderer.positionCount = 0; // Reset line renderer
+            Debug.Log("Switched to Create Mode.");
+        }
+
+        private void ToggleExtrudeMode()
+        {
+            DeselectCurrentMesh(); // Deselect any current mesh when switching modes
+            Debug.Log("Switched to Extrude Mode.");
+        }
+
+        private void ExtrudeSelectedMesh(float amount)
+        {
+            if (selectedMesh == null) return;
+
+            // Check the height of the selected mesh before extruding
+            var currentHeight = selectedMesh.GetComponent<MeshFilter>().sharedMesh.bounds.size.y;
+
+            if (amount > 0) // Extrude up
+            {
+                selectedMesh.Extrude(new List<Face>() { selectedMesh.faces[0] }, ExtrudeMethod.FaceNormal, amount);
+                selectedMesh.ToMesh();
+                selectedMesh.Refresh();
+                selectedMesh.GetComponent<MeshCollider>().sharedMesh = selectedMesh.GetComponent<MeshFilter>().sharedMesh;
+            }
+        }
+
+        private void RevertMeshOrDestroy()
+        {
+            if (selectedMesh == null) return;
+
+            // Check the current height of the selected mesh
+            var currentHeight = selectedMesh.GetComponent<MeshFilter>().sharedMesh.bounds.size.y;
+
+            if (currentHeight > originalHeight) // If the mesh is extruded, revert to original height
+            {
+                // Reverse the extrusion by resetting the mesh to original state
+                selectedMesh.Extrude(new List<Face>() { selectedMesh.faces[0] }, ExtrudeMethod.FaceNormal, -extrudeAmount);
+                selectedMesh.ToMesh();
+                selectedMesh.Refresh();
+                selectedMesh.GetComponent<MeshCollider>().sharedMesh = selectedMesh.GetComponent<MeshFilter>().sharedMesh;
+                Debug.Log("Reverted the mesh to original state.");
+            }
+            else // If the mesh is flat, destroy it
+            {
+                Destroy(selectedMesh.gameObject);
+                DeselectCurrentMesh(); // Deselect the current mesh
+                Debug.Log("Destroyed the flat mesh.");
+            }
         }
     }
 }
