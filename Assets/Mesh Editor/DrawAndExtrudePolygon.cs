@@ -11,6 +11,7 @@ namespace ProBuilder.Examples
 {
     public class DrawAndExtrudePolygon : MonoBehaviour
     {
+        public bool isCreatingMesh;
         public float m_Height = 1f;
         public bool m_FlipNormals = false;
         public Material targetMaterial; // Material to be applied
@@ -100,6 +101,11 @@ namespace ProBuilder.Examples
             points.Clear(); // Clear points to allow for new mesh creation
 
             Debug.Log("Mesh Created!");
+
+            if(isCreatingMesh)
+            {
+                isCreatingMesh = false;
+            }
         }
 
         ProBuilderMesh CreateMeshFromPoints(Vector3[] points)
@@ -178,20 +184,29 @@ namespace ProBuilder.Examples
         {
             // If the popup canvas is active or the mouse is over a UI element, we should not add new points
             if (meshButton[0].activeSelf && selectedMesh != null || EventSystem.current.IsPointerOverGameObject())
+           
                 return;
 
             if (Input.GetMouseButtonDown(0))
             {
-                Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
-                if (Physics.Raycast(ray, out RaycastHit hit))
+                if(isCreatingMesh)
                 {
-                    // Check if clicking on the floor to create new points
-                    if (hit.collider.CompareTag("Floor"))
+                    Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
+                    if (Physics.Raycast(ray, out RaycastHit hit))
                     {
-                        points.Add(hit.point);
-                        lineRenderer.positionCount = points.Count;
-                        lineRenderer.SetPosition(points.Count - 1, hit.point);
+                        // Check if clicking on the floor to create new points
+                        if (hit.collider.CompareTag("Floor"))
+                        {
+                            points.Add(hit.point);
+                            lineRenderer.positionCount = points.Count;
+                            lineRenderer.SetPosition(points.Count - 1, hit.point);
+                        }
                     }
+                }
+
+                else
+                {
+                    Debug.Log("Not able to create mesh!");
                 }
             }
 
@@ -255,6 +270,11 @@ namespace ProBuilder.Examples
             points.Clear(); // Clear points for new mesh creation
             lineRenderer.positionCount = 0; // Reset line renderer
             Debug.Log("Switched to Create Mode.");
+
+            if(!isCreatingMesh)
+            {
+                isCreatingMesh = true;
+            }
         }
 
         private void ToggleExtrudeMode()
