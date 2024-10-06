@@ -3,28 +3,48 @@ using System.Collections.Generic;
 using UnityEngine;
 using NaughtyAttributes;
 using UnityEngine.UI;
+using System;
+using ProBuilder.Examples;
+
 
 public class CameraController : MonoBehaviour
 {
+    public static CameraController Instance;
     public Camera myCamera;
     public Transform TopView_CameraRig;
     public Transform FPSView_CameraRig;
     private GameObject myCeiling;
     public FirstPersonController FPSController;
-
-    // Store the last local rotation state of the camera
-    private Quaternion cameraLastRotation;
+    public DrawAndExtrudePolygon drawMesh;
+   
+    
+    
     [Space]
 
     [Header("Toggle")]
     public Button CameraBtn;
     public bool cameraToggle;
     public Text CameraText;
+    private Quaternion cameraLastRotation;
+
+   
+    public event Action viewMode;
+
+
+    private void Awake()
+    {
+        Instance = this;
+    }
 
     private void Start()
     {
         myCeiling = GameObject.FindGameObjectWithTag("Ceiling");
         CameraBtn.onClick.AddListener(OnToggleView);
+
+        if(drawMesh != null)
+        {
+            viewMode += drawMesh.OnCameraViewUpdate;
+        }
     }
 
     public void OnToggleView()
@@ -35,6 +55,7 @@ public class CameraController : MonoBehaviour
             Debug.Log("Top View!");
             CameraText.text = "TOP VIEW";
             TopView_Setup();
+            viewMode?.Invoke();
         }
         else
         {
@@ -42,6 +63,7 @@ public class CameraController : MonoBehaviour
             Debug.Log("FPS View");
             CameraText.text = "FPS VIEW";
             FPS_Setup();
+            viewMode?.Invoke();
         }
     }
 

@@ -48,13 +48,15 @@ public class MeshSelectorAndMover : MonoBehaviour
         RaycastHit hit;
 
         // Perform the raycast and check if we hit an object tagged "GeneratedMesh"
-        if (Physics.Raycast(ray, out hit) && hit.collider.CompareTag("GeneratedMesh"))
+        if (Physics.Raycast(ray, out hit) && hit.collider.CompareTag("GeneratedMesh") || Physics.Raycast(ray, out hit) && hit.collider.CompareTag("Other"))
         {
             selectedObject = hit.transform; // Store the selected object to be moved
             isMoving = true; // Set moving flag to true
             // Set the initial target position to the current position of the selected object
             targetPosition = selectedObject.position; // Keep the Y value fixed
         }
+
+
     }
 
     // Move the selected object to the mouse position projected onto the floor

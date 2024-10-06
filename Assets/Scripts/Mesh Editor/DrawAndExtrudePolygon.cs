@@ -15,8 +15,9 @@ namespace ProBuilder.Examples
         public float m_Height = 1f;
         public bool m_FlipNormals = false;
         public Material targetMaterial; // Material to be applied
+        public Material lineRendererMaterial;
         public LineRenderer lineRenderer;
-        public float lineWidth = 0.01f;
+        public float lineWidth = 0.1f;
         public Color lineColor = Color.white;
         public GameObject[] meshButton;
         public Button createModeButton; // Button to toggle creation mode
@@ -30,6 +31,27 @@ namespace ProBuilder.Examples
         private ProBuilderMesh selectedMesh = null;
 
         private const float extrudeAmount = 0.1f;
+
+        public void OnCameraViewUpdate()
+        {
+            //TOP VIEW
+            if(CameraController.Instance.cameraToggle)
+            {
+                if(lineRenderer != null)
+                {
+                    Debug.Log("Camera is Changed To TopView");
+                }
+            }
+
+            else if(!CameraController.Instance.cameraToggle)
+            {
+                if(lineRenderer != null)
+                {
+                    Debug.Log("Camera is Changed To FPSView");
+                }
+            }
+        }
+
 
         void Start()
         {
@@ -84,6 +106,10 @@ namespace ProBuilder.Examples
             if (lineRenderer == null)
             {
                 lineRenderer = go.AddComponent<LineRenderer>();
+                if(lineRendererMaterial != null)
+                {
+                    lineRenderer.material = lineRendererMaterial;
+                }
             }
 
             lineRenderer.positionCount = 0;
