@@ -17,12 +17,10 @@ namespace ProBuilder.Examples
         public LineRenderer lineRenderer;
         public float lineWidth = 0.01f;
         public Color lineColor = Color.white;
-        public Canvas popupCanvas;
+        public GameObject[] meshButton;
         public Button createModeButton; // Button to toggle creation mode
-        public Button extrudeButton; // Button to extrude
         public Button upButton;
         public Button downButton;
-        public TextMeshProUGUI text;
 
         // New TMP_InputField for extrusion height
         public TMP_InputField heightInputField;
@@ -40,15 +38,19 @@ namespace ProBuilder.Examples
             upButton.onClick.AddListener(() => ExtrudeSelectedMesh(GetExtrudeHeight()));
             downButton.onClick.AddListener(() => RevertMeshOrDestroy());
             createModeButton.onClick.AddListener(ToggleCreateMode); // Assign toggle function
-            extrudeButton.onClick.AddListener(ToggleExtrudeMode); // Assign toggle function
 
-            // Hide the popup canvas initially
-            popupCanvas.gameObject.SetActive(false);
-            extrudeButton.interactable = false; // Initially disable the extrude button
+
 
             // Ensure height input field has a default value
             heightInputField.text = m_Height.ToString();
             heightInputField.onValueChanged.AddListener(OnHeightInputChanged);
+
+            //INITIALLY DISABLED
+            for (int i = 0; i < meshButton.Length; i++)
+            {
+                meshButton[i].SetActive(false);
+            }
+
         }
 
         void Update()
@@ -174,8 +176,8 @@ namespace ProBuilder.Examples
 
         private void HandleMouseInput()
         {
-            // If the popup canvas is active, we should not add new points
-            if (popupCanvas.gameObject.activeSelf && selectedMesh != null)
+            // If the popup canvas is active or the mouse is over a UI element, we should not add new points
+            if (meshButton[0].activeSelf && selectedMesh != null || EventSystem.current.IsPointerOverGameObject())
                 return;
 
             if (Input.GetMouseButtonDown(0))
@@ -199,6 +201,7 @@ namespace ProBuilder.Examples
             }
         }
 
+
         private void HandleMeshSelection()
         {
             if (Input.GetMouseButtonDown(0) && !EventSystem.current.IsPointerOverGameObject())
@@ -212,14 +215,7 @@ namespace ProBuilder.Examples
                         // Select the mesh and show popup
                         selectedMesh = hit.transform.GetComponent<ProBuilderMesh>();
                         ShowPopup(Input.mousePosition);
-                        text.text = "Selected Mesh: " + selectedMesh.name;
                         Debug.Log("Selected a Generated Mesh.");
-                        extrudeButton.interactable = true; // Enable the extrude button when a mesh is selected
-                    }
-                    else
-                    {
-                        // Deselect if clicking on other areas
-                        DeselectCurrentMesh();
                     }
                 }
                 else
@@ -232,23 +228,24 @@ namespace ProBuilder.Examples
 
         private void ShowPopup(Vector3 position)
         {
-            popupCanvas.transform.position = position;
-            popupCanvas.gameObject.SetActive(true);
+            for (int i = 0; i < meshButton.Length; i++)
+            {
+                meshButton[i].SetActive(true);
+            }
         }
 
         private void DeselectCurrentMesh()
         {
             selectedMesh = null;
             HidePopup(); // Hide popup when no mesh is selected
-            text.text = ""; // Clear the text
-            extrudeButton.interactable = false; // Disable the extrude button
-            Debug.Log("Deselected the current mesh.");
         }
 
         private void HidePopup()
         {
-            popupCanvas.transform.position = new Vector3(-9999, -9999, 0);
-            popupCanvas.gameObject.SetActive(false); // Hide the canvas
+            for (int i = 0; i < meshButton.Length; i++)
+            {
+                meshButton[i].SetActive(false); // Hide the canvas
+            }
         }
 
         private void ToggleCreateMode()
@@ -297,6 +294,8 @@ namespace ProBuilder.Examples
 
         private float GetExtrudeHeight()
         {
+            Debug.Log("Extrude!");
+
             if (float.TryParse(heightInputField.text, out float height))
             {
                 return height;
