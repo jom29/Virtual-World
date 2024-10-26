@@ -1,29 +1,34 @@
 using UnityEngine;
 using UnityEngine.UI;
-
+using UnityEngine.EventSystems;
 
 public class MeshSelectorAndMover : MonoBehaviour
 {
-    private Camera mainCamera;        // Reference to the main camera
-    private Transform selectedObject; // The currently selected object to move or rotate
-    private Vector3 targetPosition;   // The target position for the selected object
-    public float smoothSpeed = 0.1f;  // Speed of the smooth movement
-    private bool isMoving = false;    // Flag to indicate if an object is being moved
-    public float rotationSpeed = 100f; // Speed of rotation
-    private Vector3 lastMousePosition; // To track mouse position for rotation
+    private Camera mainCamera;
+    private Transform selectedObject;
+    private Vector3 targetPosition;
+    public float smoothSpeed = 15f;
+    private bool isMoving = false;
+    public float rotationSpeed = 100f;
+    private Vector3 lastMousePosition;
     public Toggle rotateToggle;
-
+    public bool isFPSControllerActive = false;
+    public Transform fpsControllerTransform;
+    public float minDistanceToFPSController = 1.5f;
 
     void Start()
     {
-        mainCamera = Camera.main; // Cache the main camera reference
+        mainCamera = Camera.main;
     }
 
     void Update()
     {
+        // Prevent movement if mouse is over UI
+        if (EventSystem.current.IsPointerOverGameObject())
+            return;
+
         if (!rotateToggle.isOn)
         {
-            // Object selection and movement
             if (Input.GetMouseButtonDown(0))
             {
                 SelectMeshObject();
@@ -31,32 +36,40 @@ public class MeshSelectorAndMover : MonoBehaviour
 
             if (selectedObject != null && Input.GetMouseButton(0))
             {
-                MoveSelectedObjectToMousePosition();
+                // For GeneratedMesh, check distance to FPS controller if it is active
+                if (isFPSControllerActive && selectedObject.CompareTag("GeneratedMesh") && IsTooCloseToFPSController())
+                {
+                    isMoving = false; // Stop moving when too close
+                }
+                else
+                {
+                    UpdateTargetPosition(); // Update target position on floor plane
+                    isMoving = true;
+                }
             }
 
             if (Input.GetMouseButtonUp(0))
             {
                 selectedObject = null;
-                isMoving = false; // Reset moving flag
+                isMoving = false;
             }
 
             if (isMoving && selectedObject != null)
             {
-                selectedObject.position = Vector3.Lerp(selectedObject.position, targetPosition, smoothSpeed);
+                selectedObject.position = Vector3.Lerp(selectedObject.position, targetPosition, smoothSpeed * Time.deltaTime);
             }
         }
         else
         {
-            // Rotation mode
             if (Input.GetMouseButtonDown(0))
             {
-                SelectMeshObject(); // Select object to rotate
-                lastMousePosition = Input.mousePosition; // Store initial mouse position
+                SelectMeshObject();
+                lastMousePosition = Input.mousePosition;
             }
 
             if (selectedObject != null && Input.GetMouseButton(0))
             {
-                RotateSelected(); // Rotate based on mouse movement
+                RotateSelected();
             }
 
             if (Input.GetMouseButtonUp(0))
@@ -66,46 +79,53 @@ public class MeshSelectorAndMover : MonoBehaviour
         }
     }
 
-    // Handles selecting a mesh object by raycasting from camera to world view based on mouse position
     private void SelectMeshObject()
     {
-        Ray ray = mainCamera.ScreenPointToRay(Input.mousePosition); // Create a ray from camera through the mouse position
+        Ray ray = mainCamera.ScreenPointToRay(Input.mousePosition);
         RaycastHit hit;
 
         if (Physics.Raycast(ray, out hit) && (hit.collider.CompareTag("GeneratedMesh") || hit.collider.CompareTag("Other")))
         {
-            selectedObject = hit.transform; // Store the selected object
-            isMoving = true; // Set moving flag to true
-            targetPosition = selectedObject.position; // Initial target position
+            selectedObject = hit.transform;
+            isMoving = true;
+            targetPosition = selectedObject.position;
         }
     }
 
-    // Move the selected object to the mouse position projected onto the floor
-    private void MoveSelectedObjectToMousePosition()
+    private void UpdateTargetPosition()
     {
-        Ray ray = mainCamera.ScreenPointToRay(Input.mousePosition); // Ray through mouse position
+        Ray ray = mainCamera.ScreenPointToRay(Input.mousePosition);
         RaycastHit hit;
 
+        // Project movement onto the floor even if the object is elevated
         if (Physics.Raycast(ray, out hit) && hit.collider.CompareTag("Floor"))
         {
             targetPosition = new Vector3(hit.point.x, selectedObject.position.y, hit.point.z);
         }
     }
 
-    // Rotate the selected object based on mouse movement, only modifying the Y-axis rotation
+    private bool IsTooCloseToFPSController()
+    {
+        if (mainCamera.orthographic) return false;
+
+        if (fpsControllerTransform != null && selectedObject != null)
+        {
+            float distance = Vector3.Distance(fpsControllerTransform.position, selectedObject.position);
+            return distance < minDistanceToFPSController;
+        }
+        return false;
+    }
+
     private void RotateSelected()
     {
         Vector3 currentMousePosition = Input.mousePosition;
-        float deltaX = currentMousePosition.x - lastMousePosition.x; // Horizontal drag distance
+        float deltaX = currentMousePosition.x - lastMousePosition.x;
 
-        // Get the current rotation and calculate the new Y rotation based on mouse movement
         Vector3 currentRotation = selectedObject.eulerAngles;
         float newYRotation = currentRotation.y + deltaX * rotationSpeed * Time.deltaTime;
 
-        // Apply the new Y rotation while keeping the current X and Z rotations unchanged
         selectedObject.rotation = Quaternion.Euler(currentRotation.x, newYRotation, currentRotation.z);
 
-        lastMousePosition = currentMousePosition; // Update last mouse position
+        lastMousePosition = currentMousePosition;
     }
-
 }

@@ -3348,9 +3348,12 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ca3b047223c3d6943a59f3ba3172d510, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  smoothSpeed: 0.2
+  smoothSpeed: 10
   rotationSpeed: 100
   rotateToggle: {fileID: 1622089215}
+  isFPSControllerActive: 0
+  fpsControllerTransform: {fileID: 656260691}
+  minDistanceToFPSController: 1.5
 --- !u!4 &774244864
 Transform:
   m_ObjectHideFlags: 0
