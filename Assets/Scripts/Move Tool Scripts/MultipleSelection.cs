@@ -49,6 +49,24 @@ public class MultipleSelection : MonoBehaviour
             if(!multipleObjects.Contains(hit.transform))
             {
                 multipleObjects.Add(hit.transform);
+
+                // Try to get the MeshRenderer of the hit object
+                MeshRenderer renderer = hit.transform.GetComponent<MeshRenderer>();
+
+                if(renderer != null)
+                {
+                    renderer.material.color = Color.red;
+                }
+
+                else
+                {
+                    // If it doesn't have a MeshRenderer, look for any MeshRenderer in child objects
+                    MeshRenderer[] childRenderers = hit.transform.GetComponentsInChildren<MeshRenderer>();
+                    foreach (MeshRenderer childRenderer in childRenderers)
+                    {
+                        childRenderer.material.color = Color.red;
+                    }
+                }
             }
         }
     }
@@ -132,21 +150,46 @@ public class MultipleSelection : MonoBehaviour
 
     private void DestroyTempObject()
     {
-        if (tempObject != null)
+        if (tempObject == null) return;
+
+        // Unparent items and reset colors
+        foreach (Transform child in multipleObjects)
         {
-            // Unparent all items in multipleObjects before destroying tempObject
-            foreach (Transform child in multipleObjects)
+            // Unparent child if it is under tempObject
+            if (child.parent == tempObject.transform)
             {
-                if (child.parent == tempObject.transform)
-                {
-                    child.SetParent(null); // Unparent the child
-                }
+                child.SetParent(null);
             }
 
-            multipleObjects.Clear();
+            // Reset color to white for any MeshRenderer in the object or its children
+            ResetToDefaultColor(child);
+        }
 
-            Destroy(tempObject);
-            tempObject = null;
+        // Clear the list and destroy the temp object
+        multipleObjects.Clear();
+        Destroy(tempObject);
+        tempObject = null;
+    }
+
+    // Helper method to reset material color to white for MeshRenderers
+    private void ResetToDefaultColor(Transform obj)
+    {
+        // Try to get the object's MeshRenderer
+        MeshRenderer renderer = obj.GetComponent<MeshRenderer>();
+
+        // If the object has a MeshRenderer, set its color to white
+        if (renderer != null)
+        {
+            renderer.material.color = Color.white;
+        }
+        else
+        {
+            // If no MeshRenderer on the object, apply to all child MeshRenderers
+            foreach (MeshRenderer childRenderer in obj.GetComponentsInChildren<MeshRenderer>())
+            {
+                childRenderer.material.color = Color.white;
+            }
         }
     }
+
 }
