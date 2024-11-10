@@ -94,13 +94,23 @@ public class MeshSelectorAndMover : MonoBehaviour
 
     private void UpdateTargetPosition()
     {
-        Ray ray = mainCamera.ScreenPointToRay(Input.mousePosition);
-        RaycastHit hit;
-
-        // Project movement onto the floor even if the object is elevated
-        if (Physics.Raycast(ray, out hit) && hit.collider.CompareTag("Floor"))
+        if(!mainCamera.orthographic)
         {
-            targetPosition = new Vector3(hit.point.x, selectedObject.position.y, hit.point.z);
+            Ray ray = mainCamera.ScreenPointToRay(Input.mousePosition);
+            RaycastHit hit;
+
+            // Project movement onto the floor even if the object is elevated
+            if (Physics.Raycast(ray, out hit) && hit.collider.CompareTag("Floor"))
+            {
+                targetPosition = new Vector3(hit.point.x, selectedObject.position.y, hit.point.z);
+            }
+
+        }
+        else
+        {
+            Ray ray = mainCamera.ScreenPointToRay(Input.mousePosition);
+            Vector3 position = ray.GetPoint(10); // Adjust the distance if needed
+            targetPosition = new Vector3(position.x, selectedObject.position.y, position.z); // Keep y-axis at 0
         }
     }
 

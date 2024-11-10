@@ -2247,6 +2247,10 @@ MonoBehaviour:
   CameraBtn: {fileID: 218640937}
   cameraToggle: 0
   CameraText: {fileID: 88351503}
+  zoomSpeed: 2
+  minOrthographicSize: 5
+  maxOrthographicSize: 20
+  panSpeed: 2
 --- !u!1 &629249219
 GameObject:
   m_ObjectHideFlags: 0
@@ -3384,6 +3388,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   multipleObjects: []
   cam: {fileID: 963194227}
+  isMultipleSelection: 0
   tempObjectMaterial: {fileID: 2100000, guid: 750680956d3158049b70ce66d4a5baf3, type: 2}
   yAxisMarker: 1
 --- !u!1 &806192952
