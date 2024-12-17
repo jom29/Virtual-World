@@ -16,6 +16,9 @@ public class MeshSelectorAndMover : MonoBehaviour
     public Transform fpsControllerTransform;
     public float minDistanceToFPSController = 1.5f;
 
+    //SCRIPTS REFERENCES
+    public MultipleSelection multipleSelectionScript;
+
     void Start()
     {
         mainCamera = Camera.main;
@@ -34,7 +37,7 @@ public class MeshSelectorAndMover : MonoBehaviour
                 SelectMeshObject();
             }
 
-            if (selectedObject != null && Input.GetMouseButton(0))
+            if (selectedObject != null && Input.GetMouseButton(0) && !multipleSelectionScript.isMultipleSelection)
             {
                 // For GeneratedMesh, check distance to FPS controller if it is active
                 if (isFPSControllerActive && selectedObject.CompareTag("GeneratedMesh") && IsTooCloseToFPSController())

@@ -1,6 +1,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.UI;
 
 public class MultipleSelection : MonoBehaviour
 {
@@ -11,6 +12,38 @@ public class MultipleSelection : MonoBehaviour
     private GameObject tempObject; // Store the temporary GameObject
     public Material tempObjectMaterial; // Assign a material in the inspector
     public float yAxisMarker = 0;
+
+    //UI
+    public Toggle multipleSelectionToggle;
+
+    public void multipleSelection_ToggleSetup()
+    {
+        
+        if(isMultipleSelection)
+        {
+            isMultipleSelection = false;
+            resetMultipleSelections();
+        }
+
+        else
+        {
+            isMultipleSelection = true;
+        }
+
+        multipleSelectionToggle.isOn = isMultipleSelection;
+    }
+
+    private void resetMultipleSelections()
+    {
+        for (int i = 0; i < multipleObjects.Count; i++)
+        {
+            ResetToDefaultColor(multipleObjects[i]);
+        }
+
+        multipleObjects.Clear();
+    }
+
+
 
     private void Update()
     {
@@ -170,6 +203,8 @@ public class MultipleSelection : MonoBehaviour
         Destroy(tempObject);
         tempObject = null;
     }
+
+   
 
     // Helper method to reset material color to white for MeshRenderers
     private void ResetToDefaultColor(Transform obj)
