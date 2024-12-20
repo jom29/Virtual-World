@@ -19,6 +19,10 @@ public class MeshSelectorAndMover : MonoBehaviour
     //SCRIPTS REFERENCES
     public MultipleSelection multipleSelectionScript;
 
+    //TARGET OBJECT TO DELETE
+    private GameObject currentlySelectedObject;
+
+
     void Start()
     {
         mainCamera = Camera.main;
@@ -92,6 +96,11 @@ public class MeshSelectorAndMover : MonoBehaviour
             selectedObject = hit.transform;
             isMoving = true;
             targetPosition = selectedObject.position;
+
+            if(currentlySelectedObject == null)
+            {
+                currentlySelectedObject = hit.transform.gameObject;
+            }
         }
     }
 
@@ -140,5 +149,18 @@ public class MeshSelectorAndMover : MonoBehaviour
         selectedObject.rotation = Quaternion.Euler(currentRotation.x, newYRotation, currentRotation.z);
 
         lastMousePosition = currentMousePosition;
+    }
+
+    public void DeleteFurniture()
+    {
+        if(currentlySelectedObject != null)
+        {
+            Destroy(currentlySelectedObject);
+        }
+
+        else
+        {
+            Debug.Log("Not able to delete Object!");
+        }
     }
 }
