@@ -3514,6 +3514,9 @@ MonoBehaviour:
   fpsControllerTransform: {fileID: 656260691}
   minDistanceToFPSController: 1.5
   multipleSelectionScript: {fileID: 774244865}
+  currentlySelectedObject: {fileID: 0}
+  currentlySelectedObjects: []
+  furnitureDeleteBtn: {fileID: 964425368}
 --- !u!4 &774244864
 Transform:
   m_ObjectHideFlags: 0
@@ -4127,8 +4130,8 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 1}
   m_AnchorMax: {x: 0, y: 1}
-  m_AnchoredPosition: {x: 9.5867, y: -10}
-  m_SizeDelta: {x: 23.8886, y: 30}
+  m_AnchoredPosition: {x: 100.46896, y: -10}
+  m_SizeDelta: {x: 205.6526, y: 30}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &915159474
 MonoBehaviour:
@@ -4177,6 +4180,18 @@ MonoBehaviour:
       - m_Target: {fileID: 774244865}
         m_TargetAssemblyTypeName: MultipleSelection, Assembly-CSharp
         m_MethodName: multipleSelection_ToggleSetup
+        m_Mode: 1
+        m_Arguments:
+          m_ObjectArgument: {fileID: 0}
+          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+          m_IntArgument: 0
+          m_FloatArgument: 0
+          m_StringArgument: 
+          m_BoolArgument: 0
+        m_CallState: 2
+      - m_Target: {fileID: 774244863}
+        m_TargetAssemblyTypeName: MeshSelectorAndMover, Assembly-CSharp
+        m_MethodName: DeleteFurniture_ResetSelections
         m_Mode: 1
         m_Arguments:
           m_ObjectArgument: {fileID: 0}
@@ -4587,7 +4602,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!224 &964425369
 RectTransform:
   m_ObjectHideFlags: 0
@@ -4603,9 +4618,9 @@ RectTransform:
   - {fileID: 759613191}
   m_Father: {fileID: 2009821120}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
-  m_AnchorMin: {x: 0, y: 0}
-  m_AnchorMax: {x: 0, y: 0}
-  m_AnchoredPosition: {x: 0, y: 0}
+  m_AnchorMin: {x: 0, y: 1}
+  m_AnchorMax: {x: 0, y: 1}
+  m_AnchoredPosition: {x: 316.1, y: -25}
   m_SizeDelta: {x: 200, y: 45}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &964425370

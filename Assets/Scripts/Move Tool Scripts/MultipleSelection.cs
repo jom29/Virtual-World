@@ -210,19 +210,22 @@ public class MultipleSelection : MonoBehaviour
     private void ResetToDefaultColor(Transform obj)
     {
         // Try to get the object's MeshRenderer
-        MeshRenderer renderer = obj.GetComponent<MeshRenderer>();
+        if(obj != null)
+        {
+            MeshRenderer renderer = obj.GetComponent<MeshRenderer>();
 
-        // If the object has a MeshRenderer, set its color to white
-        if (renderer != null)
-        {
-            renderer.material.color = Color.white;
-        }
-        else
-        {
-            // If no MeshRenderer on the object, apply to all child MeshRenderers
-            foreach (MeshRenderer childRenderer in obj.GetComponentsInChildren<MeshRenderer>())
+            // If the object has a MeshRenderer, set its color to white
+            if (renderer != null)
             {
-                childRenderer.material.color = Color.white;
+                renderer.material.color = Color.white;
+            }
+            else
+            {
+                // If no MeshRenderer on the object, apply to all child MeshRenderers
+                foreach (MeshRenderer childRenderer in obj.GetComponentsInChildren<MeshRenderer>())
+                {
+                    childRenderer.material.color = Color.white;
+                }
             }
         }
     }

@@ -1,6 +1,9 @@
 using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.EventSystems;
+using NUnit.Framework;
+using System.Collections.Generic;
+using System.Collections;
 
 public class MeshSelectorAndMover : MonoBehaviour
 {
@@ -19,8 +22,18 @@ public class MeshSelectorAndMover : MonoBehaviour
     //SCRIPTS REFERENCES
     public MultipleSelection multipleSelectionScript;
 
-    //TARGET OBJECT TO DELETE
-    private GameObject currentlySelectedObject;
+
+    //TARGET OBJECT TO DELETE - ONLY USED FOR SINGLE SELECTIONS
+    public GameObject currentlySelectedObject;
+
+
+    //TARGET OBJECT TO DELETE - ONLY USED FOR MULTIPLE SELECTIONS
+    public List<GameObject> currentlySelectedObjects = new List<GameObject>();
+
+
+
+    // FURNITURE DELETE BUTTON
+    public GameObject furnitureDeleteBtn;
 
 
     void Start()
@@ -97,9 +110,31 @@ public class MeshSelectorAndMover : MonoBehaviour
             isMoving = true;
             targetPosition = selectedObject.position;
 
-            if(currentlySelectedObject == null)
+            //CONDITION IN SINGLE SELECTION
+            if(currentlySelectedObject == null && !multipleSelectionScript.isMultipleSelection)
             {
                 currentlySelectedObject = hit.transform.gameObject;
+            }
+
+            //CONDITION IN MULTIPLE SELECTIONS
+            if(multipleSelectionScript.isMultipleSelection)
+            {
+                if(!currentlySelectedObjects.Contains(hit.transform.gameObject))
+                {
+                    currentlySelectedObjects.Add(hit.transform.gameObject);
+                }
+
+                //NULL THE SINGLE TARGET OBJECT AS DONT NEED IT IN MULTIPLE SELECTIONS
+                if(currentlySelectedObject != null)
+                {
+                    currentlySelectedObject = null;
+                }
+            }
+
+
+            if (!furnitureDeleteBtn.activeInHierarchy)
+            {
+                furnitureDeleteBtn.SetActive(true);
             }
         }
     }
@@ -151,16 +186,48 @@ public class MeshSelectorAndMover : MonoBehaviour
         lastMousePosition = currentMousePosition;
     }
 
+
+    //THIS IS REFERENCE DIRECTLY FROM THE BUTTON
     public void DeleteFurniture()
     {
-        if(currentlySelectedObject != null)
+        //DELETE SINGLE SELECTIONS
+        if(currentlySelectedObject != null && !multipleSelectionScript.isMultipleSelection)
         {
             Destroy(currentlySelectedObject);
+            currentlySelectedObject = null;
+            furnitureDeleteBtn.SetActive(false);
         }
 
-        else
+
+        //DELETE MULTIPLE SELECTIONS
+        if(multipleSelectionScript.isMultipleSelection && currentlySelectedObjects.Count > 0)
         {
-            Debug.Log("Not able to delete Object!");
+            for(int i = 0; i < currentlySelectedObjects.Count; i++)
+            {
+                Destroy(currentlySelectedObjects[i]);
+            }
+            currentlySelectedObjects.Clear();
+            multipleSelectionScript.multipleObjects.Clear();
+            furnitureDeleteBtn.SetActive(false);
+
         }
     }
+
+    public void DeleteFurniture_ResetSelections()
+    {
+        if (!multipleSelectionScript.isMultipleSelection)
+        {
+            if (currentlySelectedObjects.Count > 0)
+            {
+                currentlySelectedObjects.Clear();
+            }
+
+            multipleSelectionScript.multipleObjects.Clear();
+
+            //DEACTIVE 
+            furnitureDeleteBtn.SetActive(false);
+            currentlySelectedObject = null;
+        }
+    }
+
 }
