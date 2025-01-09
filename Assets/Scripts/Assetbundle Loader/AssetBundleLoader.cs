@@ -1,6 +1,8 @@
 using UnityEngine;
 using UnityEngine.Networking;
+using UnityEngine.EventSystems;  // Required for UI detection
 using System.Collections;
+using UnityEngine.UI;
 
 public class AssetBundleLoader : MonoBehaviour
 {
@@ -10,6 +12,10 @@ public class AssetBundleLoader : MonoBehaviour
 
     private AssetBundle assetBundle;
     private GameObject prefab;
+
+    public bool instantiate;
+    public Text instantiateTxt;
+
 
     void Start()
     {
@@ -51,9 +57,17 @@ public class AssetBundleLoader : MonoBehaviour
 
     void Update()
     {
+      
         // Check for mouse input and perform raycast
-        if (Input.GetMouseButtonDown(0)) // Left mouse button
+        if (Input.GetMouseButtonDown(0) && instantiate) // Left mouse button
         {
+            if (IsPointerOverUI())
+            {
+                // Skip prefab instantiation if hovering over a UI element
+                return;
+            }
+
+
             RaycastHit hit;
 
             // Create a ray from the camera to the mouse position
@@ -83,6 +97,38 @@ public class AssetBundleLoader : MonoBehaviour
                 }
             }
         }
+    }
+
+    public void ToggleInstantiate()
+    {
+        if(instantiate)
+        {
+            instantiate = false;
+
+            if(instantiateTxt != null)
+            {
+                instantiateTxt.text = "INSTANTIATE: OFF";
+                instantiateTxt.color = Color.white;
+            }
+        }
+
+        else
+        {
+            instantiate = true;
+
+            if(instantiateTxt != null)
+            {
+                instantiateTxt.text = "INSTANTIATE: ON";
+                instantiateTxt.color = Color.yellow;
+            }
+        }
+    }
+
+    // Method to check if the pointer is over any UI element
+    private bool IsPointerOverUI()
+    {
+        // Check if the pointer is over any UI element
+        return EventSystem.current.IsPointerOverGameObject();
     }
 
     // Optional: Unload the AssetBundle when not needed
