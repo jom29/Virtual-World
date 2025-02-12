@@ -1,4 +1,7 @@
 using UnityEngine;
+using TMPro;
+
+
 
 public class FirstPersonController : MonoBehaviour
 {
@@ -10,6 +13,9 @@ public class FirstPersonController : MonoBehaviour
     private Camera playerCamera;
     private float verticalVelocity;
     private bool isGrounded;
+    private bool isRotatingCamera;
+
+    public TextMeshProUGUI cameraRotationTextStatus;
 
     private void Start()
     {
@@ -17,21 +23,52 @@ public class FirstPersonController : MonoBehaviour
         playerCamera = GetComponentInChildren<Camera>();
     }
 
+    private void mouseRotation()
+    {
+        float mouseX = Input.GetAxis("Mouse X") * mouseSensitivity;
+        float mouseY = Input.GetAxis("Mouse Y") * mouseSensitivity;
+
+        Vector3 rotation = playerCamera.transform.localEulerAngles;
+        rotation.x -= mouseY;
+        rotation.y += mouseX;
+        rotation.z = 0; // Lock Z rotation
+
+        playerCamera.transform.localEulerAngles = rotation;
+    }
+
+    private void RotateCameraController()
+    {
+        if(Input.GetKeyDown(KeyCode.R) && isRotatingCamera)
+        {
+            cameraRotationTextStatus.text = "Rotated Camera: Off";
+            isRotatingCamera = false;
+        }
+
+        else if(Input.GetKeyDown(KeyCode.R) && !isRotatingCamera)
+        {
+            cameraRotationTextStatus.text = "Rotated Camera: On";
+            isRotatingCamera = true;
+        }
+    }
+
     private void Update()
     {
-        // Camera Rotation (only if right mouse button is held down)
-        if (Input.GetMouseButton(1)) // 1 corresponds to the right mouse button
+        RotateCameraController();
+
+        if(!isRotatingCamera)
         {
-            float mouseX = Input.GetAxis("Mouse X") * mouseSensitivity;
-            float mouseY = Input.GetAxis("Mouse Y") * mouseSensitivity;
-
-            Vector3 rotation = playerCamera.transform.localEulerAngles;
-            rotation.x -= mouseY;
-            rotation.y += mouseX;
-            rotation.z = 0; // Lock Z rotation
-
-            playerCamera.transform.localEulerAngles = rotation;
+            // Camera Rotation (only if right mouse button is held down)
+            if (Input.GetMouseButton(1)) // 1 corresponds to the right mouse button
+            {
+                mouseRotation();
+            }
         }
+        else
+        {
+            mouseRotation();
+        }
+
+
 
         // Movement
         isGrounded = controller.isGrounded;
