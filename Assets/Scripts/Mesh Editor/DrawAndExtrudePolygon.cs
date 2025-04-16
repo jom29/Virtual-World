@@ -11,6 +11,13 @@ namespace ProBuilder.Examples
 {
     public class DrawAndExtrudePolygon : MonoBehaviour
     {
+        
+
+        [Header("Script References")]
+        public AssetBundleLoader assetBundleLoaderScript;
+
+        [Space]
+
         public bool isCreatingMesh;
         public float m_Height = 1f;
         public bool m_FlipNormals = false;
@@ -23,6 +30,11 @@ namespace ProBuilder.Examples
         public Button createModeButton; // Button to toggle creation mode
         public Button upButton;
         public Button downButton;
+
+        [Header("Create Button Selection FX")]
+        public TextMeshProUGUI createButtonLabelText;
+        public Image CreateButtonSkin;
+        public Color ButtonSkin;
 
         // New TMP_InputField for extrusion height
         public TMP_InputField heightInputField;
@@ -131,6 +143,8 @@ namespace ProBuilder.Examples
             if(isCreatingMesh)
             {
                 isCreatingMesh = false;
+                createButtonLabelText.color = Color.white;
+                CreateButtonSkin.color = ButtonSkin;
             }
         }
 
@@ -300,7 +314,23 @@ namespace ProBuilder.Examples
             if(!isCreatingMesh)
             {
                 isCreatingMesh = true;
+
+                createButtonLabelText.color = Color.green;
+                CreateButtonSkin.color = Color.blue;
+                
             }
+
+            if(assetBundleLoaderScript != null)
+            {
+                //CHECK FIRST IF THE INSTANTIATE FLAG IS ON
+                if(assetBundleLoaderScript.instantiate)
+                {
+                    //TURN OFF INSTANTIATE MODE TO AVOID CONFLICT
+                    assetBundleLoaderScript.TurnOffInstantiate();
+                }
+            }
+
+            
         }
 
         private void ToggleExtrudeMode()

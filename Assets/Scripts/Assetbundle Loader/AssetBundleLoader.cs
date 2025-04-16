@@ -124,6 +124,16 @@ public class AssetBundleLoader : MonoBehaviour
         }
     }
 
+    public void TurnOffInstantiate()
+    {
+        instantiate = false;
+        if(instantiateTxt != null)
+        {
+            instantiateTxt.text = "INSTANTIATE: OFF";
+            instantiateTxt.color = Color.white;
+        }
+    }
+
     // Method to check if the pointer is over any UI element
     private bool IsPointerOverUI()
     {
