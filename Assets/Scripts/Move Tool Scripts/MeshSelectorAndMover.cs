@@ -111,7 +111,7 @@ public class MeshSelectorAndMover : MonoBehaviour
             targetPosition = selectedObject.position;
 
             //CONDITION IN SINGLE SELECTION
-            if(currentlySelectedObject == null && !multipleSelectionScript.isMultipleSelection)
+            if(!multipleSelectionScript.isMultipleSelection)
             {
                 currentlySelectedObject = hit.transform.gameObject;
             }

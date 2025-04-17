@@ -16,6 +16,7 @@ public class AssetBundleLoader : MonoBehaviour
     public bool instantiate;
     public Text instantiateTxt;
 
+    public int indexNameTracker;
 
     void Start()
     {
@@ -80,6 +81,9 @@ public class AssetBundleLoader : MonoBehaviour
                 {
                     // Instantiate the prefab at the hit point
                     GameObject spawnedObject = Instantiate(prefab, hit.point, Quaternion.identity);
+
+                    indexNameTracker++;
+                    spawnedObject.name = "Furniture: " + "Track: " + indexNameTracker;
 
                     // Add a BoxCollider to the instantiated prefab (if it doesn't have one already)
                     BoxCollider boxCollider = spawnedObject.GetComponent<BoxCollider>();
