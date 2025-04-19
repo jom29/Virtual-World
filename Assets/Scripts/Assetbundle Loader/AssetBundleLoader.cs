@@ -138,6 +138,18 @@ public class AssetBundleLoader : MonoBehaviour
         }
     }
 
+
+    public void OnEnable()
+    {
+        //RESET INSTANTIATE BUTTON LABEL STATUS
+        if(!instantiate && instantiateTxt.text.Equals("INSTANTIATE ON"))
+        {
+            instantiateTxt.text = "INSTANTIATE: OFF";
+            instantiateTxt.color = Color.white;
+        }
+    }
+
+
     // Method to check if the pointer is over any UI element
     private bool IsPointerOverUI()
     {

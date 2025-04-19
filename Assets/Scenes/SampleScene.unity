@@ -1243,6 +1243,7 @@ MonoBehaviour:
   prefabTag: Other
   instantiate: 0
   instantiateTxt: {fileID: 676960034}
+  indexNameTracker: 0
 --- !u!1 &525399176
 GameObject:
   m_ObjectHideFlags: 0
@@ -4593,6 +4594,7 @@ MonoBehaviour:
   - {fileID: 676164873}
   indicator: {fileID: 525399177}
   activeIndex: 0
+  assetBundleLoaderScript: {fileID: 513669501}
 --- !u!1 &1606056719
 GameObject:
   m_ObjectHideFlags: 0

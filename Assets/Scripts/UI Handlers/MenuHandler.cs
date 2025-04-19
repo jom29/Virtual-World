@@ -10,6 +10,8 @@ public class MenuHandler : MonoBehaviour
     public RectTransform indicator;
     public int activeIndex;
 
+    public AssetBundleLoader assetBundleLoaderScript;
+
     private void OnEnable()
     {
         NavigatePage(0);
@@ -30,6 +32,12 @@ public class MenuHandler : MonoBehaviour
             else
             {
                 panels[i].SetActive(false);
+            }
+
+            //DISABLE ASSETBUNDLE LOADER WHEN NAVIGATING TO OTHER PAGE
+            if(i != 3)
+            {
+                assetBundleLoaderScript.TurnOffInstantiate();
             }
         }
     }
