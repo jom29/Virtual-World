@@ -7,6 +7,9 @@ using System.Collections;
 
 public class MeshSelectorAndMover : MonoBehaviour
 {
+   
+    public PropertiesDisplayer propertiesDisplayerScript;
+
     private Camera mainCamera;
     private Transform selectedObject;
     private Vector3 targetPosition;
@@ -30,10 +33,6 @@ public class MeshSelectorAndMover : MonoBehaviour
     //TARGET OBJECT TO DELETE - ONLY USED FOR MULTIPLE SELECTIONS
     public List<GameObject> currentlySelectedObjects = new List<GameObject>();
 
-
-
-    // FURNITURE DELETE BUTTON
-    public GameObject furnitureDeleteBtn;
 
 
     void Start()
@@ -130,13 +129,26 @@ public class MeshSelectorAndMover : MonoBehaviour
                     currentlySelectedObject = null;
                 }
             }
-
-
-            if (!furnitureDeleteBtn.activeInHierarchy)
-            {
-                furnitureDeleteBtn.SetActive(true);
-            }
         }
+
+        //DETECT SELECTION
+        //-----------------------------------------------------------------------|
+        if (hit.collider.CompareTag("Floor"))
+        {
+            propertiesDisplayerScript.DisplayTargetProperties("Floor");
+        }
+
+        else if(hit.collider.CompareTag("Other"))
+        {
+            propertiesDisplayerScript.DisplayTargetProperties("Furniture");
+        }
+
+        else if(hit.collider.CompareTag("GeneratedMesh"))
+        {
+            propertiesDisplayerScript.DisplayTargetProperties("CustomShape");
+        }
+        //------------------------------------------------------------------------|
+
     }
 
     private void UpdateTargetPosition()
@@ -195,7 +207,6 @@ public class MeshSelectorAndMover : MonoBehaviour
         {
             Destroy(currentlySelectedObject);
             currentlySelectedObject = null;
-            furnitureDeleteBtn.SetActive(false);
         }
 
 
@@ -208,7 +219,6 @@ public class MeshSelectorAndMover : MonoBehaviour
             }
             currentlySelectedObjects.Clear();
             multipleSelectionScript.multipleObjects.Clear();
-            furnitureDeleteBtn.SetActive(false);
 
         }
     }
@@ -223,9 +233,6 @@ public class MeshSelectorAndMover : MonoBehaviour
             }
 
             multipleSelectionScript.multipleObjects.Clear();
-
-            //DEACTIVE 
-            furnitureDeleteBtn.SetActive(false);
             currentlySelectedObject = null;
         }
     }
