@@ -29,6 +29,9 @@ public class MeshSelectorAndMover : MonoBehaviour
     //TARGET OBJECT TO DELETE - ONLY USED FOR SINGLE SELECTIONS
     public GameObject currentlySelectedObject;
 
+    //SELECTION HIGHLIGHTS
+
+    public GameObject currentHighlight;
 
     //TARGET OBJECT TO DELETE - ONLY USED FOR MULTIPLE SELECTIONS
     public List<GameObject> currentlySelectedObjects = new List<GameObject>();
@@ -76,6 +79,7 @@ public class MeshSelectorAndMover : MonoBehaviour
             if (isMoving && selectedObject != null)
             {
                 selectedObject.position = Vector3.Lerp(selectedObject.position, targetPosition, smoothSpeed * Time.deltaTime);
+                currentHighlight.transform.position = selectedObject.position;
             }
         }
         else
@@ -113,6 +117,7 @@ public class MeshSelectorAndMover : MonoBehaviour
             if(!multipleSelectionScript.isMultipleSelection)
             {
                 currentlySelectedObject = hit.transform.gameObject;
+                currentHighlight.transform.position = hit.transform.position;
             }
 
             //CONDITION IN MULTIPLE SELECTIONS
