@@ -140,7 +140,7 @@ public class CameraController : MonoBehaviour
 
         // Set the camera to the FPS view rig
         myCamera.transform.parent = FPSView_CameraRig.transform;
-        myCamera.transform.localPosition = new Vector3(0, 1.6f, 0);
+        myCamera.transform.localPosition = new Vector3(0, 0.85f, 0);
 
         // Restore the last local rotation of the camera
         myCamera.transform.localRotation = cameraLastRotation;
