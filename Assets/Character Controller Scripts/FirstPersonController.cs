@@ -16,6 +16,8 @@ public class FirstPersonController : MonoBehaviour
     private bool isRotatingCamera;
 
     public TextMeshProUGUI cameraRotationTextStatus;
+    public GameObject MenuGO;
+    public AssetBundleLoader assetBundleLoaderScript;
 
     private void Start()
     {
@@ -42,12 +44,42 @@ public class FirstPersonController : MonoBehaviour
         {
             cameraRotationTextStatus.text = "Rotated Camera: Off";
             isRotatingCamera = false;
+
+            if(MenuGO != null)
+            {
+                MenuGO.SetActive(true);
+            }
+
+            else
+            {
+                Debug.LogError("MenuGO is null");
+            }
         }
 
         else if(Input.GetKeyDown(KeyCode.R) && !isRotatingCamera)
         {
             cameraRotationTextStatus.text = "Rotated Camera: On";
             isRotatingCamera = true;
+
+            if (MenuGO != null)
+            {
+                if (assetBundleLoaderScript != null)
+                {
+                    assetBundleLoaderScript.TurnOffInstantiate();
+                }
+
+                else
+                {
+                    Debug.LogError("assetBundlerLoaderScript is null");
+                }
+
+                MenuGO.SetActive(false);
+            }
+
+            else
+            {
+                Debug.LogError("MenuGO is null");
+            }
         }
     }
 
