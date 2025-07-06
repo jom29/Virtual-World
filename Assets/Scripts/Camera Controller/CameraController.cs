@@ -37,6 +37,11 @@ public class CameraController : MonoBehaviour
     private bool canPan = false;  // Track if panning is allowed (initially false)
     private bool isPanning = false;  // Track if we're currently panning
 
+    [Space]
+
+    [Header("Objects To Hide in TopView")]
+    public GameObject[] hideObjects;
+
     private void Awake()
     {
         Instance = this;
@@ -98,6 +103,11 @@ public class CameraController : MonoBehaviour
     [Button]
     public void TopView_Setup()
     {
+        for(int i =0; i < hideObjects.Length; i++)
+        {
+            hideObjects[i].SetActive(false);
+        }
+
         // Disable ceiling if it exists
         if (myCeiling != null)
         {
@@ -129,6 +139,11 @@ public class CameraController : MonoBehaviour
     [Button]
     public void FPS_Setup()
     {
+        for (int i = 0; i < hideObjects.Length; i++)
+        {
+            hideObjects[i].SetActive(true);
+        }
+
         // Enable FPS controller
         FPSController.enabled = true;
 
