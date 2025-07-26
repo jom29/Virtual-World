@@ -1,33 +1,19 @@
-Shader "Custom/ReceiveShadowsOnly"
+Shader "Custom/ShadowCasterOnly"
 {
-    Properties
-    {
-        _Color ("Color", Color) = (1,1,1,1)
-    }
     SubShader
     {
-        Tags {"RenderType"="Opaque"}
-        CGPROGRAM
-        #pragma surface surf NoLighting addshadow
+        // Don't render the main pass (ColorMask 0 means no color writes)
+        Tags { "RenderType"="Opaque" }
+        ColorMask 0
+        ZWrite On
 
-        fixed4 _Color;
-
-        struct Input {
-            float3 worldPos;
-        };
-
-        void surf(Input IN, inout SurfaceOutput o)
+        // Include shadow caster pass so it still casts shadows
+        Pass
         {
-            o.Albedo = _Color.rgb;
-            o.Alpha = 1;
+            Name "ShadowCaster"
+            Tags { "LightMode" = "ShadowCaster" }
+            ZWrite On
+            ColorMask 0
         }
-
-        // NoLighting: disables light contribution but allows shadow attenuation
-        inline fixed4 LightingNoLighting(SurfaceOutput s, fixed3 lightDir, fixed atten)
-        {
-            return fixed4(s.Albedo * atten, 1); // applies shadows only
-        }
-        ENDCG
     }
-    FallBack "Diffuse"
 }

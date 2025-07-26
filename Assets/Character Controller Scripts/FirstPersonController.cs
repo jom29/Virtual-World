@@ -23,7 +23,39 @@ public class FirstPersonController : MonoBehaviour
     {
         controller = GetComponent<CharacterController>();
         playerCamera = GetComponentInChildren<Camera>();
+
+
+        DefaultCameraSetup();
     }
+
+
+    private void DefaultCameraSetup()
+    {
+        //INITIAL CAMERA SETUP
+        cameraRotationTextStatus.text = "Rotated Camera: On";
+        isRotatingCamera = true;
+
+        if (MenuGO != null)
+        {
+            if (assetBundleLoaderScript != null)
+            {
+                assetBundleLoaderScript.TurnOffInstantiate();
+            }
+
+            else
+            {
+                Debug.LogError("assetBundlerLoaderScript is null");
+            }
+
+            MenuGO.SetActive(false);
+        }
+
+        else
+        {
+            Debug.LogError("MenuGO is null");
+        }
+    }
+
 
     private void mouseRotation()
     {
