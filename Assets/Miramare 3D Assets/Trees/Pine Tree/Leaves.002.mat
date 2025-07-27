@@ -85,9 +85,9 @@ Material:
     - _UVSec: 0
     - _ZWrite: 1
     m_Colors:
-    - _Color: {r: 1, g: 0.97169805, b: 0.97169805, a: 1}
+    - _Color: {r: 0.97704405, g: 1, b: 0.7704402, a: 1}
     - _EmissionColor: {r: 0, g: 0, b: 0, a: 1}
-    - _TranslucencyColor: {r: 0.6878356, g: 0.9559748, b: 0, a: 1}
+    - _TranslucencyColor: {r: 0.9926415, g: 1, b: 0.97169805, a: 1}
     - _TreeInstanceColor: {r: 1, g: 1, b: 1, a: 1}
     - _TreeInstanceScale: {r: 1, g: 1, b: 1, a: 1}
   m_BuildTextureStacks: []
