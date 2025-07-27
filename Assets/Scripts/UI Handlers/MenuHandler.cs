@@ -11,7 +11,7 @@ public class MenuHandler : MonoBehaviour
     public int activeIndex;
 
     public AssetBundleLoader assetBundleLoaderScript;
-
+    public PrefabSpawner prefabRespawnerScript;
     private void OnEnable()
     {
         NavigatePage(0);
@@ -38,6 +38,7 @@ public class MenuHandler : MonoBehaviour
             if(i != 3)
             {
                 assetBundleLoaderScript.TurnOffInstantiate();
+                prefabRespawnerScript.TurnOffInstantiate();
             }
         }
     }

@@ -8,6 +8,7 @@ TagManager:
   - GeneratedMesh
   - Ceiling
   - Other
+  - Savable
   layers:
   - Default
   - TransparentFX

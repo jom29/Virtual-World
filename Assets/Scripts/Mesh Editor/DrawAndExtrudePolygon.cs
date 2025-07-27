@@ -302,6 +302,7 @@ namespace ProBuilder.Examples
                 {
                     //TURN OFF INSTANTIATE MODE TO AVOID CONFLICT
                     assetBundleLoaderScript.TurnOffInstantiate();
+                    
                 }
             }
 

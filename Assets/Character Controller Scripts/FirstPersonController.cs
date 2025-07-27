@@ -18,6 +18,7 @@ public class FirstPersonController : MonoBehaviour
     public TextMeshProUGUI cameraRotationTextStatus;
     public GameObject MenuGO;
     public AssetBundleLoader assetBundleLoaderScript;
+    public PrefabSpawner prefabSpawnerScript;
 
     private void Start()
     {
@@ -40,12 +41,18 @@ public class FirstPersonController : MonoBehaviour
             if (assetBundleLoaderScript != null)
             {
                 assetBundleLoaderScript.TurnOffInstantiate();
+                prefabSpawnerScript.TurnOffInstantiate();
             }
 
             else
             {
                 Debug.LogError("assetBundlerLoaderScript is null");
             }
+
+
+
+
+            
 
             MenuGO.SetActive(false);
         }
@@ -98,6 +105,7 @@ public class FirstPersonController : MonoBehaviour
                 if (assetBundleLoaderScript != null)
                 {
                     assetBundleLoaderScript.TurnOffInstantiate();
+                    prefabSpawnerScript.TurnOffInstantiate();
                 }
 
                 else
