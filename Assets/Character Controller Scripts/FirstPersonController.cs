@@ -1,8 +1,6 @@
 using UnityEngine;
 using TMPro;
 
-
-
 public class FirstPersonController : MonoBehaviour
 {
     public float speed = 5f;
@@ -20,19 +18,27 @@ public class FirstPersonController : MonoBehaviour
     public AssetBundleLoader assetBundleLoaderScript;
     public PrefabSpawner prefabSpawnerScript;
 
+#if UNITY_ANDROID
+    private Vector3 targetPosition;
+    private bool hasTarget = false;
+
+    private Vector2 lastTouchPosition;
+    private bool isSwiping = false;
+    private float touchSensitivity = 0.2f; // Adjust for swipe feel
+#endif
+
     private void Start()
     {
         controller = GetComponent<CharacterController>();
         playerCamera = GetComponentInChildren<Camera>();
 
-
-        //DefaultCameraSetup();
+#if UNITY_ANDROID
+        targetPosition = transform.position;
+#endif
     }
-
 
     private void DefaultCameraSetup()
     {
-        //INITIAL CAMERA SETUP
         cameraRotationTextStatus.text = "Rotated Camera: On";
         isRotatingCamera = true;
 
@@ -43,26 +49,13 @@ public class FirstPersonController : MonoBehaviour
                 assetBundleLoaderScript.TurnOffInstantiate();
                 prefabSpawnerScript.TurnOffInstantiate();
             }
-
-            else
-            {
-                Debug.LogError("assetBundlerLoaderScript is null");
-            }
-
-
-
-
-            
-
             MenuGO.SetActive(false);
         }
-
         else
         {
             Debug.LogError("MenuGO is null");
         }
     }
-
 
     private void mouseRotation()
     {
@@ -72,34 +65,23 @@ public class FirstPersonController : MonoBehaviour
         Vector3 rotation = playerCamera.transform.localEulerAngles;
         rotation.x -= mouseY;
         rotation.y += mouseX;
-        rotation.z = 0; // Lock Z rotation
+        rotation.z = 0;
 
         playerCamera.transform.localEulerAngles = rotation;
     }
 
     private void RotateCameraController()
     {
-        if(Input.GetKeyDown(KeyCode.R) && isRotatingCamera)
+        if (Input.GetKeyDown(KeyCode.R) && isRotatingCamera)
         {
             cameraRotationTextStatus.text = "Rotated Camera: Off";
             isRotatingCamera = false;
-
-            if(MenuGO != null)
-            {
-                MenuGO.SetActive(true);
-            }
-
-            else
-            {
-                Debug.LogError("MenuGO is null");
-            }
+            if (MenuGO != null) MenuGO.SetActive(true);
         }
-
-        else if(Input.GetKeyDown(KeyCode.R) && !isRotatingCamera)
+        else if (Input.GetKeyDown(KeyCode.R) && !isRotatingCamera)
         {
             cameraRotationTextStatus.text = "Rotated Camera: On";
             isRotatingCamera = true;
-
             if (MenuGO != null)
             {
                 if (assetBundleLoaderScript != null)
@@ -107,18 +89,7 @@ public class FirstPersonController : MonoBehaviour
                     assetBundleLoaderScript.TurnOffInstantiate();
                     prefabSpawnerScript.TurnOffInstantiate();
                 }
-
-                else
-                {
-                    Debug.LogError("assetBundlerLoaderScript is null");
-                }
-
                 MenuGO.SetActive(false);
-            }
-
-            else
-            {
-                Debug.LogError("MenuGO is null");
             }
         }
     }
@@ -127,55 +98,120 @@ public class FirstPersonController : MonoBehaviour
     {
         RotateCameraController();
 
-        if(!isRotatingCamera)
+#if UNITY_ANDROID
+        HandleAndroidControls();
+#else
+        HandleWebGLAndEditorControls();
+#endif
+    }
+
+#if UNITY_ANDROID
+    private void HandleAndroidControls()
+    {
+        // Handle swipe rotation
+        if (Input.touchCount > 0)
         {
-            // Camera Rotation (only if right mouse button is held down)
-            if (Input.GetMouseButton(1)) // 1 corresponds to the right mouse button
+            Touch touch = Input.GetTouch(0);
+
+            if (touch.phase == TouchPhase.Began)
             {
-                mouseRotation();
+                lastTouchPosition = touch.position;
+                isSwiping = false;
             }
+            else if (touch.phase == TouchPhase.Moved)
+            {
+                Vector2 delta = touch.deltaPosition;
+
+                // Threshold to determine swipe vs tap
+                if (delta.magnitude > 10f)
+                    isSwiping = true;
+
+                if (isSwiping)
+                {
+                    // Rotate camera by swipe
+                    float rotX = delta.y * -touchSensitivity; // swipe up/down = pitch
+                    float rotY = delta.x * touchSensitivity;  // swipe left/right = yaw
+
+                    Vector3 rotation = playerCamera.transform.localEulerAngles;
+                    rotation.x += rotX;
+                    rotation.y += rotY;
+                    rotation.z = 0;
+                    playerCamera.transform.localEulerAngles = rotation;
+                }
+            }
+            else if (touch.phase == TouchPhase.Ended && !isSwiping)
+            {
+                // Treat as tap — move to point
+                Ray ray = playerCamera.ScreenPointToRay(touch.position);
+                RaycastHit hit;
+
+                if (Physics.Raycast(ray, out hit))
+                {
+                    if (hit.collider.CompareTag("Floor"))
+                    {
+                        targetPosition = hit.point;
+                        hasTarget = true;
+                    }
+                }
+            }
+        }
+
+        // Move toward target
+        if (hasTarget)
+        {
+            Vector3 direction = (targetPosition - transform.position);
+            direction.y = 0;
+
+            if (direction.magnitude > 0.2f)
+            {
+                controller.Move(direction.normalized * speed * Time.deltaTime);
+            }
+            else
+            {
+                hasTarget = false;
+            }
+        }
+    }
+#endif
+
+#if !UNITY_ANDROID
+    private void HandleWebGLAndEditorControls()
+    {
+        // Camera rotation
+        if (!isRotatingCamera)
+        {
+            if (Input.GetMouseButton(1))
+                mouseRotation();
         }
         else
         {
             mouseRotation();
         }
 
-
-
-        // Movement
+        // WASD movement
         isGrounded = controller.isGrounded;
         if (isGrounded && verticalVelocity < 0)
-        {
-            verticalVelocity = 0; // Reset vertical velocity when grounded
-        }
+            verticalVelocity = 0;
 
-        // Jump
         if (Input.GetButtonDown("Jump") && isGrounded)
-        {
             verticalVelocity = Mathf.Sqrt(jumpHeight * -2f * Physics.gravity.y);
-        }
 
         verticalVelocity += Physics.gravity.y * Time.deltaTime;
 
-        // Calculate movement direction based on camera forward direction
         Vector3 forward = playerCamera.transform.forward;
         Vector3 right = playerCamera.transform.right;
-
-        // Flatten the vectors to ignore vertical movement
         forward.y = 0;
         right.y = 0;
-
         forward.Normalize();
         right.Normalize();
 
-        // Get movement input
         float moveHorizontal = Input.GetAxis("Horizontal");
         float moveVertical = Input.GetAxis("Vertical");
 
-        // Create movement vector
         Vector3 move = (forward * moveVertical + right * moveHorizontal) * speed;
-        move.y = verticalVelocity; // Include vertical velocity for jumping
+        move.y = verticalVelocity;
 
         controller.Move(move * Time.deltaTime);
     }
+#endif
 }
