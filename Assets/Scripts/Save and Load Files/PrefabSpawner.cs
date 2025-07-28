@@ -2,7 +2,8 @@ using System;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
-
+using TMPro;
+using NaughtyAttributes;
 public class PrefabSpawner : MonoBehaviour
 {
     [Header("Assign prefabs to spawn")]
@@ -16,7 +17,23 @@ public class PrefabSpawner : MonoBehaviour
     public int indexNameTracker;
     public event Action onPrefabChangeEvent;
 
+    [Foldout("Default Furniture Properties")]
+    public InputField defaultRotationY_Input;
+    [Foldout("Default Furniture Properties")]
+    public InputField defaultYAxis_Input;
 
+
+
+    [Foldout("Default Furniture Properties")]
+    public float defaultYRot;
+    [Foldout("Default Furniture Properties")]
+    public float defaultYAxis;
+
+    private void Start()
+    {
+        defaultRotationY_Input.text = 0.ToString();
+        defaultYAxis_Input.text = 0.ToString();
+    }
 
     void Update()
     {
@@ -33,8 +50,19 @@ public class PrefabSpawner : MonoBehaviour
             {
                 if (hit.collider.CompareTag("Floor"))
                 {
+                    //CONVERT DEFAULT Y ROTATION & Y AXIS
+                   defaultYRot = float.Parse(defaultRotationY_Input.text);
+                   defaultYAxis = float.Parse(defaultYAxis_Input.text);
+
+                    Vector3 myHitPoint = new Vector3(hit.point.x, defaultYAxis, hit.point.z);
+                    Quaternion myQuaternion = Quaternion.Euler(0f, defaultYRot, 0f);
+
+
                     // Instantiate prefab at hit point
-                    GameObject spawnedObject = Instantiate(prefab, hit.point, Quaternion.identity);
+                    // GameObject spawnedObject = Instantiate(prefab, hit.point, Quaternion.identity);
+
+                    GameObject spawnedObject = Instantiate(prefab, myHitPoint, myQuaternion);
+
 
                     // Naming & tracking
                     indexNameTracker++;
