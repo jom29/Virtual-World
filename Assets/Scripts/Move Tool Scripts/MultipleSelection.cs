@@ -1,30 +1,30 @@
-using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
 
 public class MultipleSelection : MonoBehaviour
 {
-    public List<Transform> multipleObjects;
+    [Header("Selection Settings")]
+    public List<Transform> multipleObjects = new List<Transform>();
     public Camera cam;
-
     public bool isMultipleSelection;
-    private GameObject tempObject; // Store the temporary GameObject
-    public Material tempObjectMaterial; // Assign a material in the inspector
-    public float yAxisMarker = 0;
-
-    //UI
     public Toggle multipleSelectionToggle;
 
+    [Header("Highlight Settings")]
+    public Material highlightMaterial; // Material for highlighting
+    private Dictionary<Transform, Material[]> originalMaterials = new Dictionary<Transform, Material[]>(); // Store originals
+
+    private Vector3 dragOffset;  // Offset from first object to mouse
+    private bool isDragging = false;
+
+    #region UI Toggle
     public void multipleSelection_ToggleSetup()
     {
-        
-        if(isMultipleSelection)
+        if (isMultipleSelection)
         {
             isMultipleSelection = false;
-            resetMultipleSelections();
+            ResetMultipleSelections();
         }
-
         else
         {
             isMultipleSelection = true;
@@ -32,45 +32,42 @@ public class MultipleSelection : MonoBehaviour
 
         multipleSelectionToggle.isOn = isMultipleSelection;
     }
+    #endregion
 
-    private void resetMultipleSelections()
-    {
-        for (int i = 0; i < multipleObjects.Count; i++)
-        {
-            ResetToDefaultColor(multipleObjects[i]);
-        }
-
-        multipleObjects.Clear();
-    }
-
-
-
+    #region Update
     private void Update()
     {
-       
-            if (Input.GetMouseButtonDown(0) && isMultipleSelection)
-            {
-                MultipleSelection_Method();
-            }
+        if (!isMultipleSelection) return;
 
-            if (Input.GetMouseButtonDown(2) && isMultipleSelection) // Middle mouse button pressed
-            {
-                CreateTempObject();
-            }
+        if (Input.GetMouseButtonDown(0))
+        {
+            MultipleSelection_Method();
+        }
 
-            if (Input.GetMouseButton(2) && isMultipleSelection) // Middle mouse button held down
+        if (Input.GetMouseButtonDown(2)) // Start dragging
+        {
+            if (multipleObjects.Count > 0)
             {
-                UpdateTempObjectPosition();
+                isDragging = true;
+                dragOffset = GetMouseWorldPosition() - multipleObjects[0].position;
             }
+        }
 
-            if (Input.GetMouseButtonUp(2) && isMultipleSelection) // Middle mouse button released
-            {
-                DestroyTempObject();
-            }
-        
+        if (Input.GetMouseButton(2) && isDragging) // Drag
+        {
+            Vector3 newPos = GetMouseWorldPosition() - dragOffset;
+            MoveSelectedObjects(newPos);
+        }
+
+        if (Input.GetMouseButtonUp(2) && isDragging) // Release
+        {
+            isDragging = false;
+            ResetMultipleSelections();
+        }
     }
+    #endregion
 
-
+    #region Selection
     private void MultipleSelection_Method()
     {
         Ray ray = cam.ScreenPointToRay(Input.mousePosition);
@@ -78,156 +75,81 @@ public class MultipleSelection : MonoBehaviour
 
         if (Physics.Raycast(ray, out hit) && (hit.collider.CompareTag("GeneratedMesh") || hit.collider.CompareTag("Other")))
         {
-            //Check if the Transform is already in the list before adding
-            if(!multipleObjects.Contains(hit.transform))
+            Transform target = hit.transform;
+
+            if (!multipleObjects.Contains(target))
             {
-                multipleObjects.Add(hit.transform);
-
-                // Try to get the MeshRenderer of the hit object
-                MeshRenderer renderer = hit.transform.GetComponent<MeshRenderer>();
-
-                if(renderer != null)
-                {
-                    renderer.material.color = Color.red;
-                }
-
-                else
-                {
-                    // If it doesn't have a MeshRenderer, look for any MeshRenderer in child objects
-                    MeshRenderer[] childRenderers = hit.transform.GetComponentsInChildren<MeshRenderer>();
-                    foreach (MeshRenderer childRenderer in childRenderers)
-                    {
-                        childRenderer.material.color = Color.red;
-                    }
-                }
+                multipleObjects.Add(target);
+                ApplyHighlight(target);
             }
         }
     }
 
-
-    private void CreateTempObject()
+    private void ApplyHighlight(Transform target)
     {
-        if (tempObject == null)
+        MeshRenderer[] renderers = target.GetComponentsInChildren<MeshRenderer>();
+
+        foreach (MeshRenderer renderer in renderers)
         {
-            tempObject = new GameObject("TempObject"); // Instantiate a new empty GameObject
+            // Save original materials
+            if (!originalMaterials.ContainsKey(target))
+                originalMaterials[target] = renderer.materials;
 
-            // Add a MeshFilter and MeshRenderer to visualize the cube
-            MeshFilter meshFilter = tempObject.AddComponent<MeshFilter>();
-            MeshRenderer meshRenderer = tempObject.AddComponent<MeshRenderer>();
-            BoxCollider boxCollider = tempObject.AddComponent<BoxCollider>(); // Optional for collision detection
+            // Assign highlight
+            Material[] highlightArray = new Material[renderer.materials.Length];
+            for (int i = 0; i < highlightArray.Length; i++)
+                highlightArray[i] = highlightMaterial;
 
-            // Assign a cube mesh to the MeshFilter
-            meshFilter.mesh = CreateCubeMesh();
-
-            // Assign the material to the MeshRenderer
-            if (tempObjectMaterial != null)
-            {
-                meshRenderer.material = tempObjectMaterial;
-            }
+            renderer.materials = highlightArray;
         }
     }
 
-    private Mesh CreateCubeMesh()
+    private void RestoreOriginalMaterials(Transform target)
     {
-        Mesh mesh = new Mesh();
-        mesh.vertices = new Vector3[]
+        if (!originalMaterials.ContainsKey(target)) return;
+
+        MeshRenderer[] renderers = target.GetComponentsInChildren<MeshRenderer>();
+        foreach (MeshRenderer renderer in renderers)
         {
-            new Vector3(-0.5f, 0.5f, -0.5f), // Top left front
-            new Vector3(0.5f, 0.5f, -0.5f), // Top right front
-            new Vector3(0.5f, -0.5f, -0.5f), // Bottom right front
-            new Vector3(-0.5f, -0.5f, -0.5f), // Bottom left front
-            new Vector3(-0.5f, 0.5f, 0.5f), // Top left back
-            new Vector3(0.5f, 0.5f, 0.5f), // Top right back
-            new Vector3(0.5f, -0.5f, 0.5f), // Bottom right back
-            new Vector3(-0.5f, -0.5f, 0.5f), // Bottom left back
-        };
-
-        mesh.triangles = new int[]
-        {
-            0, 2, 1, // Front face
-            0, 3, 2,
-            4, 5, 6, // Back face
-            4, 6, 7,
-            0, 1, 5, // Top face
-            0, 5, 4,
-            2, 3, 7, // Bottom face
-            2, 7, 6,
-            1, 2, 6, // Right face
-            1, 6, 5,
-            0, 4, 7, // Left face
-            0, 7, 3,
-        };
-
-        mesh.RecalculateNormals(); // Recalculate normals for lighting
-        return mesh;
-    }
-
-    private void UpdateTempObjectPosition()
-    {
-        if (tempObject != null)
-        {
-            Ray ray = cam.ScreenPointToRay(Input.mousePosition);
-            Vector3 position = ray.GetPoint(10); // Adjust the distance if needed
-            tempObject.transform.position = new Vector3(position.x, yAxisMarker, position.z); // Keep y-axis at 0
-
-            // Make all items in multipleObjects a child of tempObject, if they are not already
-            foreach (Transform child in multipleObjects)
-            {
-                if (child.parent != tempObject.transform)
-                {
-                    child.SetParent(tempObject.transform);
-                }
-            }
+            renderer.materials = originalMaterials[target];
         }
     }
 
-    private void DestroyTempObject()
+    private void ResetMultipleSelections()
     {
-        if (tempObject == null) return;
-
-        // Unparent items and reset colors
-        foreach (Transform child in multipleObjects)
+        foreach (Transform t in multipleObjects)
         {
-            // Unparent child if it is under tempObject
-            if (child.parent == tempObject.transform)
-            {
-                child.SetParent(null);
-            }
-
-            // Reset color to white for any MeshRenderer in the object or its children
-            ResetToDefaultColor(child);
+            RestoreOriginalMaterials(t);
         }
 
-        // Clear the list and destroy the temp object
         multipleObjects.Clear();
-        Destroy(tempObject);
-        tempObject = null;
+        originalMaterials.Clear();
     }
+    #endregion
 
-   
-
-    // Helper method to reset material color to white for MeshRenderers
-    private void ResetToDefaultColor(Transform obj)
+    #region Movement
+    private void MoveSelectedObjects(Vector3 newPos)
     {
-        // Try to get the object's MeshRenderer
-        if(obj != null)
-        {
-            MeshRenderer renderer = obj.GetComponent<MeshRenderer>();
+        Vector3 delta = newPos - multipleObjects[0].position;
 
-            // If the object has a MeshRenderer, set its color to white
-            if (renderer != null)
-            {
-                renderer.material.color = Color.white;
-            }
-            else
-            {
-                // If no MeshRenderer on the object, apply to all child MeshRenderers
-                foreach (MeshRenderer childRenderer in obj.GetComponentsInChildren<MeshRenderer>())
-                {
-                    childRenderer.material.color = Color.white;
-                }
-            }
+        foreach (Transform t in multipleObjects)
+        {
+            t.position += delta;
         }
     }
 
+    private Vector3 GetMouseWorldPosition()
+    {
+        Ray ray = cam.ScreenPointToRay(Input.mousePosition);
+        Plane groundPlane = new Plane(Vector3.up, Vector3.zero);
+        float distance;
+
+        if (groundPlane.Raycast(ray, out distance))
+        {
+            return ray.GetPoint(distance);
+        }
+
+        return Vector3.zero;
+    }
+    #endregion
 }
