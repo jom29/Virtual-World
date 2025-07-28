@@ -1,7 +1,6 @@
-﻿using System.Collections;
-using System.Collections.Generic;
-using System.Runtime.InteropServices;
+﻿using System.Collections.Generic;
 using UnityEngine;
+using System.Runtime.InteropServices;
 
 public class SceneDataHandler : MonoBehaviour
 {
@@ -20,22 +19,25 @@ public class SceneDataHandler : MonoBehaviour
         public List<ObjectData> objects = new List<ObjectData>();
     }
 
-    public List<GameObject> prefabList; // Assign prefabs in Inspector
+    public List<GameObject> prefabList;
     private Dictionary<string, GameObject> prefabDict = new Dictionary<string, GameObject>();
 
-    // WebGL Plugin Methods
+    // ================
+    // WEBGL-ONLY PLUGINS
+    // ================
+#if UNITY_WEBGL && !UNITY_EDITOR
     [DllImport("__Internal")]
     private static extern void DownloadFile(string filename, string data);
 
     [DllImport("__Internal")]
     private static extern void UploadFile(string gameObjectName, string callback);
+#endif
 
     void Awake()
     {
-        // Force name for SendMessage compatibility in WebGL
+        // Force name for SendMessage compatibility (needed for WebGL)
         this.name = "SceneDataHandler";
 
-        // Create dictionary for fast prefab lookup
         prefabDict.Clear();
         foreach (var prefab in prefabList)
         {
@@ -46,25 +48,19 @@ public class SceneDataHandler : MonoBehaviour
 
     void Start()
     {
-        // Default load from Resources at game start
         LoadDefaultScene();
     }
 
     // ====================
-    // DEFAULT LOAD (Resources)
+    // DEFAULT LOAD
     // ====================
     private void LoadDefaultScene()
     {
-        // Load from Resources folder (Assets/Resources/sceneData.json)
-        TextAsset jsonAsset = Resources.Load<TextAsset>("sceneData"); // no .json extension
+        TextAsset jsonAsset = Resources.Load<TextAsset>("sceneData");
         if (jsonAsset != null)
-        {
             LoadSceneFromJson(jsonAsset.text);
-        }
         else
-        {
             Debug.LogWarning("Default sceneData.json not found in Resources.");
-        }
     }
 
     // ====================
@@ -77,28 +73,14 @@ public class SceneDataHandler : MonoBehaviour
 
         foreach (var saveable in saveables)
         {
-            GameObject obj = saveable.gameObject;
+            var obj = saveable.gameObject;
 
-            ObjectData objData = new ObjectData();
-            objData.prefabName = saveable.id; // Use SaveableObject ID (prefab name)
-
-            objData.position = new float[]
+            ObjectData objData = new ObjectData
             {
-                obj.transform.position.x,
-                obj.transform.position.y,
-                obj.transform.position.z
-            };
-            objData.rotation = new float[]
-            {
-                obj.transform.eulerAngles.x,
-                obj.transform.eulerAngles.y,
-                obj.transform.eulerAngles.z
-            };
-            objData.scale = new float[]
-            {
-                obj.transform.localScale.x,
-                obj.transform.localScale.y,
-                obj.transform.localScale.z
+                prefabName = saveable.id,
+                position = new float[] { obj.transform.position.x, obj.transform.position.y, obj.transform.position.z },
+                rotation = new float[] { obj.transform.eulerAngles.x, obj.transform.eulerAngles.y, obj.transform.eulerAngles.z },
+                scale = new float[] { obj.transform.localScale.x, obj.transform.localScale.y, obj.transform.localScale.z }
             };
 
             data.objects.Add(objData);
@@ -107,11 +89,18 @@ public class SceneDataHandler : MonoBehaviour
         string json = JsonUtility.ToJson(data, true);
 
 #if UNITY_WEBGL && !UNITY_EDITOR
+        // WebGL download
         DownloadFile("sceneData.json", json);
-#else
+#elif UNITY_ANDROID && !UNITY_EDITOR
+        // Android: save to persistentDataPath
         string path = Application.persistentDataPath + "/sceneData.json";
         System.IO.File.WriteAllText(path, json);
-        Debug.Log("Saved JSON to: " + path);
+        Debug.Log("Saved JSON to Android: " + path);
+#elif UNITY_EDITOR
+        // Editor fallback: save locally
+        string path = Application.persistentDataPath + "/sceneData.json";
+        System.IO.File.WriteAllText(path, json);
+        Debug.Log("Saved JSON to Editor: " + path);
 #endif
     }
 
@@ -121,8 +110,10 @@ public class SceneDataHandler : MonoBehaviour
     public void LoadScene()
     {
 #if UNITY_WEBGL && !UNITY_EDITOR
-        UploadFile("SceneDataHandler", "OnFileLoaded"); // Ensure name matches
-#else
+        // WebGL file picker
+        UploadFile("SceneDataHandler", "OnFileLoaded");
+#elif UNITY_ANDROID && !UNITY_EDITOR
+        // Android: load from persistentDataPath
         string path = Application.persistentDataPath + "/sceneData.json";
         if (System.IO.File.Exists(path))
         {
@@ -131,12 +122,24 @@ public class SceneDataHandler : MonoBehaviour
         }
         else
         {
-            // Fallback to default packaged JSON in Resources
+            LoadDefaultScene();
+        }
+#elif UNITY_EDITOR
+        // Editor: load from persistentDataPath
+        string path = Application.persistentDataPath + "/sceneData.json";
+        if (System.IO.File.Exists(path))
+        {
+            string json = System.IO.File.ReadAllText(path);
+            LoadSceneFromJson(json);
+        }
+        else
+        {
             LoadDefaultScene();
         }
 #endif
     }
 
+    // Called by WebGL UploadFile
     public void OnFileLoaded(string json)
     {
         if (string.IsNullOrEmpty(json))
@@ -144,7 +147,6 @@ public class SceneDataHandler : MonoBehaviour
             Debug.LogError("Received empty JSON from upload.");
             return;
         }
-
         LoadSceneFromJson(json);
     }
 
@@ -175,27 +177,12 @@ public class SceneDataHandler : MonoBehaviour
 
             GameObject instance = Instantiate(prefabDict[objData.prefabName]);
 
-            instance.transform.position = new Vector3(
-                objData.position[0],
-                objData.position[1],
-                objData.position[2]
-            );
+            instance.transform.position = new Vector3(objData.position[0], objData.position[1], objData.position[2]);
+            instance.transform.eulerAngles = new Vector3(objData.rotation[0], objData.rotation[1], objData.rotation[2]);
+            instance.transform.localScale = new Vector3(objData.scale[0], objData.scale[1], objData.scale[2]);
 
-            instance.transform.eulerAngles = new Vector3(
-                objData.rotation[0],
-                objData.rotation[1],
-                objData.rotation[2]
-            );
-
-            instance.transform.localScale = new Vector3(
-                objData.scale[0],
-                objData.scale[1],
-                objData.scale[2]
-            );
-
-            // Re-attach SaveableObject and set ID
-            var saveable = instance.GetComponent<SaveableObject>();
-            if (saveable == null) saveable = instance.AddComponent<SaveableObject>();
+            // Re-attach SaveableObject
+            var saveable = instance.GetComponent<SaveableObject>() ?? instance.AddComponent<SaveableObject>();
             saveable.id = objData.prefabName;
         }
 

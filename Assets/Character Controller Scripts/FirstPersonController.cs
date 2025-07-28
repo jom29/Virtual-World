@@ -26,7 +26,7 @@ public class FirstPersonController : MonoBehaviour
         playerCamera = GetComponentInChildren<Camera>();
 
 
-        DefaultCameraSetup();
+        //DefaultCameraSetup();
     }
 
 
