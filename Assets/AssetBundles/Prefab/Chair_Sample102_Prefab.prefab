@@ -12,7 +12,7 @@ GameObject:
   - component: {fileID: 5550587687386170676}
   - component: {fileID: 2927527045270405300}
   - component: {fileID: 1714820885729578760}
-  - component: {fileID: 8347864452544531165}
+  - component: {fileID: 3590674049701535403}
   m_Layer: 0
   m_Name: Chair_Sample102_Prefab
   m_TagString: Other
@@ -104,7 +104,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   id: Chair102
---- !u!65 &8347864452544531165
+--- !u!65 &3590674049701535403
 BoxCollider:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}

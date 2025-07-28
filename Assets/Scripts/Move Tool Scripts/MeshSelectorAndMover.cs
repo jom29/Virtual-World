@@ -4,6 +4,9 @@ using UnityEngine.EventSystems;
 using NUnit.Framework;
 using System.Collections.Generic;
 using System.Collections;
+using System;
+using TMPro;
+using NaughtyAttributes;
 
 public class MeshSelectorAndMover : MonoBehaviour
 {
@@ -35,6 +38,96 @@ public class MeshSelectorAndMover : MonoBehaviour
 
     //TARGET OBJECT TO DELETE - ONLY USED FOR MULTIPLE SELECTIONS
     public List<GameObject> currentlySelectedObjects = new List<GameObject>();
+
+
+    [Foldout("Height Adjust")]
+    public TextMeshProUGUI YAxisTMPPro;
+    [Foldout("Height Adjust")]
+    public InputField HeightInputValue;
+
+
+    public void IncreaseHeight()
+    {
+        try
+        {
+            if (currentlySelectedObject == null)
+            {
+                Debug.LogError("No object selected!");
+                return;
+            }
+
+            // Parse the input value
+            if (!float.TryParse(HeightInputValue.text, out float heightConvert))
+            {
+                HeightInputValue.text = "";
+                Debug.LogError("Invalid Input Value");
+                return;
+            }
+
+            // Get current position
+            Vector3 currentPos = currentlySelectedObject.transform.localPosition;
+
+            // Add height
+            currentPos.y += heightConvert;
+
+            // Apply new position
+           currentlySelectedObject.transform.localPosition = currentPos;
+
+            YAxisTMPPro.text = currentlySelectedObject.transform.localPosition.y.ToString("F2");
+        }
+        catch (Exception ex)
+        {
+            Debug.LogError("Error in IncreaseHeight: " + ex.Message);
+        }
+    }
+
+
+
+    public void DecreaseHeight()
+    {
+        try
+        {
+            if (currentlySelectedObject == null)
+            {
+                Debug.LogError("No object selected!");
+                return;
+            }
+
+            // Parse the input value
+            if (!float.TryParse(HeightInputValue.text, out float heightConvert))
+            {
+                HeightInputValue.text = "";
+                Debug.LogError("Invalid Input Value");
+                return;
+            }
+
+            // Get current position
+            Vector3 currentPos = currentlySelectedObject.transform.localPosition;
+
+            // Subtract height
+            if(currentPos.y >= 0)
+            {
+                currentPos.y -= heightConvert;
+
+                // Apply new position
+                currentlySelectedObject.transform.localPosition = currentPos;
+                YAxisTMPPro.text = currentlySelectedObject.transform.localPosition.y.ToString("F2");
+            }
+          
+        }
+        catch (Exception ex)
+        {
+            Debug.LogError("Error in DecreaseHeight: " + ex.Message);
+        }
+    }
+
+    public void ResetYAxis()
+    {
+        var pos = currentlySelectedObject.transform.localPosition;
+        pos.y = 0;
+        currentlySelectedObject.transform.localPosition = pos;
+        YAxisTMPPro.text = currentlySelectedObject.transform.localPosition.y.ToString("F2");
+    }
 
 
 
