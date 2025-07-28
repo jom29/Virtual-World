@@ -46,47 +46,26 @@ public class SceneDataHandler : MonoBehaviour
 
     void Start()
     {
-        // Default load from StreamingAssets at game start
+        // Default load from Resources at game start
         LoadDefaultScene();
     }
 
+    // ====================
+    // DEFAULT LOAD (Resources)
+    // ====================
     private void LoadDefaultScene()
     {
-        string defaultPath = System.IO.Path.Combine(Application.streamingAssetsPath, "sceneData.json");
-
-#if UNITY_ANDROID && !UNITY_EDITOR
-    // On Android, StreamingAssets must be read via WWW or UnityWebRequest
-    StartCoroutine(LoadFromStreamingAssets(defaultPath));
-#else
-        if (System.IO.File.Exists(defaultPath))
+        // Load from Resources folder (Assets/Resources/sceneData.json)
+        TextAsset jsonAsset = Resources.Load<TextAsset>("sceneData"); // no .json extension
+        if (jsonAsset != null)
         {
-            string json = System.IO.File.ReadAllText(defaultPath);
-            LoadSceneFromJson(json);
+            LoadSceneFromJson(jsonAsset.text);
         }
         else
         {
-            Debug.LogWarning("Default JSON not found in StreamingAssets: " + defaultPath);
-        }
-#endif
-    }
-
-    private IEnumerator LoadFromStreamingAssets(string path)
-    {
-        using (UnityEngine.Networking.UnityWebRequest www = UnityEngine.Networking.UnityWebRequest.Get(path))
-        {
-            yield return www.SendWebRequest();
-            if (www.result == UnityEngine.Networking.UnityWebRequest.Result.Success)
-            {
-                LoadSceneFromJson(www.downloadHandler.text);
-            }
-            else
-            {
-                Debug.LogError("Failed to load default JSON from StreamingAssets: " + www.error);
-            }
+            Debug.LogWarning("Default sceneData.json not found in Resources.");
         }
     }
-
-
 
     // ====================
     // SAVE
@@ -149,6 +128,11 @@ public class SceneDataHandler : MonoBehaviour
         {
             string json = System.IO.File.ReadAllText(path);
             LoadSceneFromJson(json);
+        }
+        else
+        {
+            // Fallback to default packaged JSON in Resources
+            LoadDefaultScene();
         }
 #endif
     }
