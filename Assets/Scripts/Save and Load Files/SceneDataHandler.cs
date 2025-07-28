@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System.Collections;
+using System.Collections.Generic;
 using System.Runtime.InteropServices;
 using UnityEngine;
 
@@ -42,6 +43,50 @@ public class SceneDataHandler : MonoBehaviour
                 prefabDict.Add(prefab.name, prefab);
         }
     }
+
+    void Start()
+    {
+        // Default load from StreamingAssets at game start
+        LoadDefaultScene();
+    }
+
+    private void LoadDefaultScene()
+    {
+        string defaultPath = System.IO.Path.Combine(Application.streamingAssetsPath, "sceneData.json");
+
+#if UNITY_ANDROID && !UNITY_EDITOR
+    // On Android, StreamingAssets must be read via WWW or UnityWebRequest
+    StartCoroutine(LoadFromStreamingAssets(defaultPath));
+#else
+        if (System.IO.File.Exists(defaultPath))
+        {
+            string json = System.IO.File.ReadAllText(defaultPath);
+            LoadSceneFromJson(json);
+        }
+        else
+        {
+            Debug.LogWarning("Default JSON not found in StreamingAssets: " + defaultPath);
+        }
+#endif
+    }
+
+    private IEnumerator LoadFromStreamingAssets(string path)
+    {
+        using (UnityEngine.Networking.UnityWebRequest www = UnityEngine.Networking.UnityWebRequest.Get(path))
+        {
+            yield return www.SendWebRequest();
+            if (www.result == UnityEngine.Networking.UnityWebRequest.Result.Success)
+            {
+                LoadSceneFromJson(www.downloadHandler.text);
+            }
+            else
+            {
+                Debug.LogError("Failed to load default JSON from StreamingAssets: " + www.error);
+            }
+        }
+    }
+
+
 
     // ====================
     // SAVE
