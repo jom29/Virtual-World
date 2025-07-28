@@ -1,3 +1,4 @@
+using System;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
@@ -13,6 +14,9 @@ public class PrefabSpawner : MonoBehaviour
     public Text instantiateTxt_InTopView; // TEXT IN CAMERA TOP VIEW
 
     public int indexNameTracker;
+    public event Action onPrefabChangeEvent;
+
+
 
     void Update()
     {
