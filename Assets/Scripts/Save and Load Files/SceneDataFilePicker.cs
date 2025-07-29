@@ -11,7 +11,6 @@ public class SceneDataFilePicker : MonoBehaviour
 
     void Awake()
     {
-        // Cache SceneDataHandler reference
         sceneDataHandler = FindObjectOfType<SceneDataHandler>();
         if (sceneDataHandler == null)
         {
@@ -19,18 +18,15 @@ public class SceneDataFilePicker : MonoBehaviour
         }
     }
 
-    /// <summary>
-    /// Call this method from a UI Button to open file picker
-    /// </summary>
+    // Existing JSON picker (unchanged)
     public void OpenJsonPicker()
     {
 #if UNITY_ANDROID || UNITY_IOS
         if (NativeFilePicker.IsFilePickerBusy())
             return;
 
-        // Determine file type depending on platform
 #if UNITY_ANDROID
-        string fileType = "*/*"; // Broad type for Android to avoid "No apps" error
+        string fileType = "*/*";
 #else
         string fileType = NativeFilePicker.ConvertExtensionToFileType("json");
 #endif
@@ -43,7 +39,6 @@ public class SceneDataFilePicker : MonoBehaviour
                 return;
             }
 
-            // Validate extension
             if (Path.GetExtension(path).ToLower() != ".json")
             {
                 Debug.LogError("Selected file is not a JSON file");
@@ -55,7 +50,6 @@ public class SceneDataFilePicker : MonoBehaviour
         }, new string[] { fileType });
 
 #elif UNITY_EDITOR
-        // Editor fallback (only works inside Unity Editor)
         string path = EditorUtility.OpenFilePanel("Select JSON file", "", "json");
         if (!string.IsNullOrEmpty(path))
         {
@@ -64,9 +58,6 @@ public class SceneDataFilePicker : MonoBehaviour
 #endif
     }
 
-    /// <summary>
-    /// Reads the JSON file and passes it to SceneDataHandler
-    /// </summary>
     private void LoadJsonFile(string path)
     {
         try
@@ -74,7 +65,6 @@ public class SceneDataFilePicker : MonoBehaviour
             string json = File.ReadAllText(path);
             if (!string.IsNullOrEmpty(json) && sceneDataHandler != null)
             {
-                // Send JSON to handler
                 sceneDataHandler.SendMessage("OnFileLoaded", json);
                 Debug.Log("Loaded JSON file: " + path);
             }
@@ -83,5 +73,42 @@ public class SceneDataFilePicker : MonoBehaviour
         {
             Debug.LogError("Failed to read JSON: " + ex.Message);
         }
+    }
+
+    // New Export Button: Calls existing SaveScene() logic
+    public void ExportSceneDataToJson()
+    {
+        if (sceneDataHandler == null)
+        {
+            Debug.LogError("SceneDataHandler is missing, cannot export!");
+            return;
+        }
+
+        // Use SceneDataHandler's existing save method
+        sceneDataHandler.SaveScene();
+
+#if UNITY_ANDROID || UNITY_IOS
+        // Export file via NativeFilePicker if required
+        string path = Path.Combine(Application.persistentDataPath, "sceneData.json");
+        if (File.Exists(path))
+        {
+            NativeFilePicker.ExportFile(path, (success) =>
+            {
+                Debug.Log("Exported JSON file: " + success);
+            });
+        }
+#elif UNITY_EDITOR
+        // Optional: allow saving to custom location in editor
+        string sourcePath = Path.Combine(Application.persistentDataPath, "sceneData.json");
+        if (File.Exists(sourcePath))
+        {
+            string savePath = EditorUtility.SaveFilePanel("Export JSON file", "", "SceneData", "json");
+            if (!string.IsNullOrEmpty(savePath))
+            {
+                File.Copy(sourcePath, savePath, true);
+                Debug.Log("Exported JSON to: " + savePath);
+            }
+        }
+#endif
     }
 }
