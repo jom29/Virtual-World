@@ -13,13 +13,7 @@ public class CollapseUIHandler : MonoBehaviour
     // Set how much you want to move the menu by on collapse
     public float collapseDeltaX = -500f;
 
-    private Vector3 originalPosition;
-
-    private void Awake()
-    {
-        // Store the original position to know where to expand back to
-        originalPosition = MenuPos.localPosition;
-    }
+  
 
     public void CollapseFunction()
     {
@@ -35,8 +29,8 @@ public class CollapseUIHandler : MonoBehaviour
     public void ExpandFunction()
     {
         // Move back to original position
-        MenuPos.localPosition = originalPosition;
-
+        // MenuPos.localPosition = Vector3.zero;
+        MenuPos.anchoredPosition = Vector3.zero;
         CollapseBtn.SetActive(true);
         ExpandBtn.SetActive(false);
         meshMoverScript.enabled = true;
