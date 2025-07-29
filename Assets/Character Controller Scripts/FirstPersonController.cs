@@ -1,5 +1,7 @@
-using UnityEngine;
+﻿using UnityEngine;
+using UnityEngine.EventSystems;
 using TMPro;
+using System.Collections.Generic;
 
 public class FirstPersonController : MonoBehaviour
 {
@@ -105,16 +107,33 @@ public class FirstPersonController : MonoBehaviour
 #endif
     }
 
+    // --------- UI Raycast Helper ----------
+    private bool IsTouchOverUI(Vector2 touchPosition)
+    {
+        if (EventSystem.current == null) return false;
+
+        PointerEventData eventData = new PointerEventData(EventSystem.current);
+        eventData.position = touchPosition;
+
+        List<RaycastResult> results = new List<RaycastResult>();
+        EventSystem.current.RaycastAll(eventData, results);
+
+        return results.Count > 0;
+    }
+
 #if UNITY_ANDROID
     private void HandleAndroidControls()
     {
-        // Handle swipe rotation
         if (Input.touchCount > 0)
         {
             Touch touch = Input.GetTouch(0);
 
             if (touch.phase == TouchPhase.Began)
             {
+                // Prevent swipe/tap if touch begins on UI
+                if (IsTouchOverUI(touch.position))
+                    return;
+
                 lastTouchPosition = touch.position;
                 isSwiping = false;
             }
@@ -141,7 +160,11 @@ public class FirstPersonController : MonoBehaviour
             }
             else if (touch.phase == TouchPhase.Ended && !isSwiping)
             {
-                // Treat as tap � move to point
+                // Prevent move-to-point if touch ends on UI
+                if (IsTouchOverUI(touch.position))
+                    return;
+
+                // Treat as tap — move to point
                 Ray ray = playerCamera.ScreenPointToRay(touch.position);
                 RaycastHit hit;
 

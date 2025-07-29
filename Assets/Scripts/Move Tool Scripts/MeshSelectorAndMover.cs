@@ -1,16 +1,13 @@
 using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.EventSystems;
-using NUnit.Framework;
 using System.Collections.Generic;
-using System.Collections;
 using System;
 using TMPro;
 using NaughtyAttributes;
 
 public class MeshSelectorAndMover : MonoBehaviour
 {
-   
     public PropertiesDisplayer propertiesDisplayerScript;
 
     private Camera mainCamera;
@@ -28,23 +25,19 @@ public class MeshSelectorAndMover : MonoBehaviour
     //SCRIPTS REFERENCES
     public MultipleSelection multipleSelectionScript;
 
-
     //TARGET OBJECT TO DELETE - ONLY USED FOR SINGLE SELECTIONS
     public GameObject currentlySelectedObject;
 
     //SELECTION HIGHLIGHTS
-
     public GameObject currentHighlight;
 
     //TARGET OBJECT TO DELETE - ONLY USED FOR MULTIPLE SELECTIONS
     public List<GameObject> currentlySelectedObjects = new List<GameObject>();
 
-
     [Foldout("Height Adjust")]
     public TextMeshProUGUI YAxisTMPPro;
     [Foldout("Height Adjust")]
     public InputField HeightInputValue;
-
 
     public void IncreaseHeight()
     {
@@ -56,7 +49,6 @@ public class MeshSelectorAndMover : MonoBehaviour
                 return;
             }
 
-            // Parse the input value
             if (!float.TryParse(HeightInputValue.text, out float heightConvert))
             {
                 HeightInputValue.text = "";
@@ -64,15 +56,9 @@ public class MeshSelectorAndMover : MonoBehaviour
                 return;
             }
 
-            // Get current position
             Vector3 currentPos = currentlySelectedObject.transform.localPosition;
-
-            // Add height
             currentPos.y += heightConvert;
-
-            // Apply new position
-           currentlySelectedObject.transform.localPosition = currentPos;
-
+            currentlySelectedObject.transform.localPosition = currentPos;
             YAxisTMPPro.text = currentlySelectedObject.transform.localPosition.y.ToString("F2");
         }
         catch (Exception ex)
@@ -80,8 +66,6 @@ public class MeshSelectorAndMover : MonoBehaviour
             Debug.LogError("Error in IncreaseHeight: " + ex.Message);
         }
     }
-
-
 
     public void DecreaseHeight()
     {
@@ -93,7 +77,6 @@ public class MeshSelectorAndMover : MonoBehaviour
                 return;
             }
 
-            // Parse the input value
             if (!float.TryParse(HeightInputValue.text, out float heightConvert))
             {
                 HeightInputValue.text = "";
@@ -101,19 +84,14 @@ public class MeshSelectorAndMover : MonoBehaviour
                 return;
             }
 
-            // Get current position
             Vector3 currentPos = currentlySelectedObject.transform.localPosition;
 
-            // Subtract height
-            if(currentPos.y >= 0)
+            if (currentPos.y >= 0)
             {
                 currentPos.y -= heightConvert;
-
-                // Apply new position
                 currentlySelectedObject.transform.localPosition = currentPos;
                 YAxisTMPPro.text = currentlySelectedObject.transform.localPosition.y.ToString("F2");
             }
-          
         }
         catch (Exception ex)
         {
@@ -129,8 +107,6 @@ public class MeshSelectorAndMover : MonoBehaviour
         YAxisTMPPro.text = currentlySelectedObject.transform.localPosition.y.ToString("F2");
     }
 
-
-
     void Start()
     {
         mainCamera = Camera.main;
@@ -138,63 +114,173 @@ public class MeshSelectorAndMover : MonoBehaviour
 
     void Update()
     {
-        // Prevent movement if mouse is over UI
+#if UNITY_ANDROID
+        // For Android: Check UI touches
+        if (Input.touchCount > 0)
+        {
+            Touch touch = Input.GetTouch(0);
+            if (EventSystem.current.IsPointerOverGameObject(touch.fingerId))
+                return;
+        }
+#else
+        // For PC: Original mouse UI check
         if (EventSystem.current.IsPointerOverGameObject())
             return;
+#endif
 
         if (!rotateToggle.isOn)
         {
-            if (Input.GetMouseButtonDown(0))
-            {
-                SelectMeshObject();
-            }
-
-            if (selectedObject != null && Input.GetMouseButton(0) && !multipleSelectionScript.isMultipleSelection)
-            {
-                // For GeneratedMesh, check distance to FPS controller if it is active
-                if (isFPSControllerActive && selectedObject.CompareTag("GeneratedMesh") && IsTooCloseToFPSController())
-                {
-                    isMoving = false; // Stop moving when too close
-                }
-                else
-                {
-                    UpdateTargetPosition(); // Update target position on floor plane
-                    isMoving = true;
-                }
-            }
-
-            if (Input.GetMouseButtonUp(0))
-            {
-                selectedObject = null;
-                isMoving = false;
-            }
-
-            if (isMoving && selectedObject != null)
-            {
-                selectedObject.position = Vector3.Lerp(selectedObject.position, targetPosition, smoothSpeed * Time.deltaTime);
-                currentHighlight.transform.position = selectedObject.position;
-            }
+#if UNITY_ANDROID
+            HandleAndroidSelectionAndMovement();
+#else
+            HandleMouseSelectionAndMovement();
+#endif
         }
         else
         {
-            if (Input.GetMouseButtonDown(0))
-            {
-                SelectMeshObject();
-                lastMousePosition = Input.mousePosition;
-            }
-
-            if (selectedObject != null && Input.GetMouseButton(0))
-            {
-                RotateSelected();
-            }
-
-            if (Input.GetMouseButtonUp(0))
-            {
-                selectedObject = null;
-            }
+#if UNITY_ANDROID
+            HandleAndroidRotation();
+#else
+            HandleMouseRotation();
+#endif
         }
     }
 
+    // -------------------- PC Logic --------------------
+    private void HandleMouseSelectionAndMovement()
+    {
+        if (Input.GetMouseButtonDown(0))
+            SelectMeshObject();
+
+        if (selectedObject != null && Input.GetMouseButton(0) && !multipleSelectionScript.isMultipleSelection)
+        {
+            if (isFPSControllerActive && selectedObject.CompareTag("GeneratedMesh") && IsTooCloseToFPSController())
+            {
+                isMoving = false;
+            }
+            else
+            {
+                UpdateTargetPosition();
+                isMoving = true;
+            }
+        }
+
+        if (Input.GetMouseButtonUp(0))
+        {
+            selectedObject = null;
+            isMoving = false;
+        }
+
+        if (isMoving && selectedObject != null)
+        {
+            selectedObject.position = Vector3.Lerp(selectedObject.position, targetPosition, smoothSpeed * Time.deltaTime);
+            currentHighlight.transform.position = selectedObject.position;
+        }
+    }
+
+    private void HandleMouseRotation()
+    {
+        if (Input.GetMouseButtonDown(0))
+        {
+            SelectMeshObject();
+            lastMousePosition = Input.mousePosition;
+        }
+
+        if (selectedObject != null && Input.GetMouseButton(0))
+        {
+            RotateSelected();
+        }
+
+        if (Input.GetMouseButtonUp(0))
+        {
+            selectedObject = null;
+        }
+    }
+
+
+    private void RotateSelected()
+    {
+        Vector3 currentMousePos = Input.mousePosition;
+        float deltaX = currentMousePos.x - lastMousePosition.x;
+
+        // Rotate around Y-axis based on horizontal mouse movement
+        Vector3 currentRotation = selectedObject.eulerAngles;
+        float newYRotation = currentRotation.y + deltaX * rotationSpeed * Time.deltaTime;
+
+        selectedObject.rotation = Quaternion.Euler(currentRotation.x, newYRotation, currentRotation.z);
+
+        lastMousePosition = currentMousePos;
+    }
+
+
+    // -------------------- Android Logic --------------------
+    private void HandleAndroidSelectionAndMovement()
+    {
+        if (Input.touchCount == 0) return;
+
+        Touch touch = Input.GetTouch(0);
+
+        if (touch.phase == TouchPhase.Began)
+            SelectMeshObject();
+
+        if (selectedObject != null && touch.phase == TouchPhase.Moved && !multipleSelectionScript.isMultipleSelection)
+        {
+            if (isFPSControllerActive && selectedObject.CompareTag("GeneratedMesh") && IsTooCloseToFPSController())
+            {
+                isMoving = false;
+            }
+            else
+            {
+                UpdateTargetPosition();
+                isMoving = true;
+            }
+        }
+
+        if (touch.phase == TouchPhase.Ended)
+        {
+            selectedObject = null;
+            isMoving = false;
+        }
+
+        if (isMoving && selectedObject != null)
+        {
+            selectedObject.position = Vector3.Lerp(selectedObject.position, targetPosition, smoothSpeed * Time.deltaTime);
+            currentHighlight.transform.position = selectedObject.position;
+        }
+    }
+
+    private void HandleAndroidRotation()
+    {
+        if (Input.touchCount == 0) return;
+
+        Touch touch = Input.GetTouch(0);
+
+        if (touch.phase == TouchPhase.Began)
+        {
+            SelectMeshObject();
+            lastMousePosition = touch.position;
+        }
+
+        if (selectedObject != null && touch.phase == TouchPhase.Moved)
+        {
+            Vector3 currentTouchPos = touch.position;
+            float deltaX = currentTouchPos.x - lastMousePosition.x;
+
+            Vector3 currentRotation = selectedObject.eulerAngles;
+            float newYRotation = currentRotation.y + deltaX * rotationSpeed * Time.deltaTime;
+
+            selectedObject.rotation = Quaternion.Euler(currentRotation.x, newYRotation, currentRotation.z);
+
+            lastMousePosition = currentTouchPos;
+        }
+
+        if (touch.phase == TouchPhase.Ended)
+        {
+            selectedObject = null;
+        }
+    }
+
+    // -------------------- Shared Methods --------------------
     private void SelectMeshObject()
     {
         Ray ray = mainCamera.ScreenPointToRay(Input.mousePosition);
@@ -206,68 +292,52 @@ public class MeshSelectorAndMover : MonoBehaviour
             isMoving = true;
             targetPosition = selectedObject.position;
 
-            //CONDITION IN SINGLE SELECTION
-            if(!multipleSelectionScript.isMultipleSelection)
+            if (!multipleSelectionScript.isMultipleSelection)
             {
                 currentlySelectedObject = hit.transform.gameObject;
                 currentHighlight.transform.position = hit.transform.position;
             }
 
-            //CONDITION IN MULTIPLE SELECTIONS
-            if(multipleSelectionScript.isMultipleSelection)
+            if (multipleSelectionScript.isMultipleSelection)
             {
-                if(!currentlySelectedObjects.Contains(hit.transform.gameObject))
+                if (!currentlySelectedObjects.Contains(hit.transform.gameObject))
                 {
                     currentlySelectedObjects.Add(hit.transform.gameObject);
                 }
 
-                //NULL THE SINGLE TARGET OBJECT AS DONT NEED IT IN MULTIPLE SELECTIONS
-                if(currentlySelectedObject != null)
+                if (currentlySelectedObject != null)
                 {
                     currentlySelectedObject = null;
                 }
             }
         }
 
-        //DETECT SELECTION
-        //-----------------------------------------------------------------------|
+        // Display properties
         if (hit.collider.CompareTag("Floor"))
-        {
             propertiesDisplayerScript.DisplayTargetProperties("Floor");
-        }
-
-        else if(hit.collider.CompareTag("Other"))
-        {
+        else if (hit.collider.CompareTag("Other"))
             propertiesDisplayerScript.DisplayTargetProperties("Furniture");
-        }
-
-        else if(hit.collider.CompareTag("GeneratedMesh"))
-        {
+        else if (hit.collider.CompareTag("GeneratedMesh"))
             propertiesDisplayerScript.DisplayTargetProperties("CustomShape");
-        }
-        //------------------------------------------------------------------------|
-
     }
 
     private void UpdateTargetPosition()
     {
-        if(!mainCamera.orthographic)
+        if (!mainCamera.orthographic)
         {
             Ray ray = mainCamera.ScreenPointToRay(Input.mousePosition);
             RaycastHit hit;
 
-            // Project movement onto the floor even if the object is elevated
             if (Physics.Raycast(ray, out hit) && hit.collider.CompareTag("Floor"))
             {
                 targetPosition = new Vector3(hit.point.x, selectedObject.position.y, hit.point.z);
             }
-
         }
         else
         {
             Ray ray = mainCamera.ScreenPointToRay(Input.mousePosition);
-            Vector3 position = ray.GetPoint(10); // Adjust the distance if needed
-            targetPosition = new Vector3(position.x, selectedObject.position.y, position.z); // Keep y-axis at 0
+            Vector3 position = ray.GetPoint(10);
+            targetPosition = new Vector3(position.x, selectedObject.position.y, position.z);
         }
     }
 
@@ -283,41 +353,23 @@ public class MeshSelectorAndMover : MonoBehaviour
         return false;
     }
 
-    private void RotateSelected()
-    {
-        Vector3 currentMousePosition = Input.mousePosition;
-        float deltaX = currentMousePosition.x - lastMousePosition.x;
-
-        Vector3 currentRotation = selectedObject.eulerAngles;
-        float newYRotation = currentRotation.y + deltaX * rotationSpeed * Time.deltaTime;
-
-        selectedObject.rotation = Quaternion.Euler(currentRotation.x, newYRotation, currentRotation.z);
-
-        lastMousePosition = currentMousePosition;
-    }
-
-
-    //THIS IS REFERENCE DIRECTLY FROM THE BUTTON
+    // -------------------- Delete Methods --------------------
     public void DeleteFurniture()
     {
-        //DELETE SINGLE SELECTIONS
-        if(currentlySelectedObject != null && !multipleSelectionScript.isMultipleSelection)
+        if (currentlySelectedObject != null && !multipleSelectionScript.isMultipleSelection)
         {
             Destroy(currentlySelectedObject);
             currentlySelectedObject = null;
         }
 
-
-        //DELETE MULTIPLE SELECTIONS
-        if(multipleSelectionScript.isMultipleSelection && currentlySelectedObjects.Count > 0)
+        if (multipleSelectionScript.isMultipleSelection && currentlySelectedObjects.Count > 0)
         {
-            for(int i = 0; i < currentlySelectedObjects.Count; i++)
+            for (int i = 0; i < currentlySelectedObjects.Count; i++)
             {
                 Destroy(currentlySelectedObjects[i]);
             }
             currentlySelectedObjects.Clear();
             multipleSelectionScript.multipleObjects.Clear();
-
         }
     }
 
@@ -334,5 +386,4 @@ public class MeshSelectorAndMover : MonoBehaviour
             currentlySelectedObject = null;
         }
     }
-
 }
