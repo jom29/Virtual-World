@@ -12,25 +12,30 @@ public class MultipleSelection : MonoBehaviour
 
     [Header("Highlight Settings")]
     public Material highlightMaterial; // Material for highlighting
-    private Dictionary<Transform, Material[]> originalMaterials = new Dictionary<Transform, Material[]>(); // Store originals
+    private Dictionary<Transform, Material[]> originalMaterials = new Dictionary<Transform, Material[]>();
 
-    private Vector3 dragOffset;  // Offset from first object to mouse
     private bool isDragging = false;
+    private Transform pivotParent; // last selected becomes pivot
+
+    private MeshSelectorAndMover singleSelector; // reference to single selection script
+
+    private void Awake()
+    {
+        singleSelector = FindObjectOfType<MeshSelectorAndMover>();
+    }
 
     #region UI Toggle
     public void multipleSelection_ToggleSetup()
     {
-        if (isMultipleSelection)
-        {
-            isMultipleSelection = false;
-            ResetMultipleSelections();
-        }
-        else
-        {
-            isMultipleSelection = true;
-        }
-
+        isMultipleSelection = !isMultipleSelection;
         multipleSelectionToggle.isOn = isMultipleSelection;
+
+        // Enable/Disable MeshSelectorAndMover to prevent conflicts
+        if (singleSelector != null)
+            singleSelector.enabled = !isMultipleSelection;
+
+        if (!isMultipleSelection)
+            ResetMultipleSelections();
     }
     #endregion
 
@@ -39,30 +44,57 @@ public class MultipleSelection : MonoBehaviour
     {
         if (!isMultipleSelection) return;
 
+#if UNITY_EDITOR || UNITY_WEBGL
+        HandleMouseInput();
+#elif UNITY_ANDROID
+        HandleTouchInput();
+#endif
+    }
+    #endregion
+
+    #region Mouse Control (Editor/WebGL)
+    private void HandleMouseInput()
+    {
         if (Input.GetMouseButtonDown(0))
-        {
             MultipleSelection_Method();
-        }
 
-        if (Input.GetMouseButtonDown(2)) // Start dragging
+        if (Input.GetMouseButtonDown(2))
+            StartDragging();
+
+        if (Input.GetMouseButton(2) && isDragging)
+            Dragging();
+
+        if (Input.GetMouseButtonUp(2) && isDragging)
+            StopDragging();
+    }
+    #endregion
+
+    #region Touch Control (Android)
+    private void HandleTouchInput()
+    {
+        if (Input.touchCount == 1)
         {
-            if (multipleObjects.Count > 0)
+            Touch touch = Input.GetTouch(0);
+
+            switch (touch.phase)
             {
-                isDragging = true;
-                dragOffset = GetMouseWorldPosition() - multipleObjects[0].position;
+                case TouchPhase.Began:
+                    MultipleSelection_Method_Touch(touch.position);
+                    break;
+
+                case TouchPhase.Moved:
+                    if (!isDragging)
+                        StartDragging();
+
+                    Dragging(touch.position);
+                    break;
+
+                case TouchPhase.Ended:
+                case TouchPhase.Canceled:
+                    if (isDragging)
+                        StopDragging();
+                    break;
             }
-        }
-
-        if (Input.GetMouseButton(2) && isDragging) // Drag
-        {
-            Vector3 newPos = GetMouseWorldPosition() - dragOffset;
-            MoveSelectedObjects(newPos);
-        }
-
-        if (Input.GetMouseButtonUp(2) && isDragging) // Release
-        {
-            isDragging = false;
-            ResetMultipleSelections();
         }
     }
     #endregion
@@ -81,6 +113,25 @@ public class MultipleSelection : MonoBehaviour
             {
                 multipleObjects.Add(target);
                 ApplyHighlight(target);
+                pivotParent = target; // last selected becomes pivot
+            }
+        }
+    }
+
+    private void MultipleSelection_Method_Touch(Vector2 touchPosition)
+    {
+        Ray ray = cam.ScreenPointToRay(touchPosition);
+        RaycastHit hit;
+
+        if (Physics.Raycast(ray, out hit) && (hit.collider.CompareTag("GeneratedMesh") || hit.collider.CompareTag("Other")))
+        {
+            Transform target = hit.transform;
+
+            if (!multipleObjects.Contains(target))
+            {
+                multipleObjects.Add(target);
+                ApplyHighlight(target);
+                pivotParent = target; // last selected becomes pivot
             }
         }
     }
@@ -91,11 +142,9 @@ public class MultipleSelection : MonoBehaviour
 
         foreach (MeshRenderer renderer in renderers)
         {
-            // Save original materials
             if (!originalMaterials.ContainsKey(target))
                 originalMaterials[target] = renderer.materials;
 
-            // Assign highlight
             Material[] highlightArray = new Material[renderer.materials.Length];
             for (int i = 0; i < highlightArray.Length; i++)
                 highlightArray[i] = highlightMaterial;
@@ -118,26 +167,64 @@ public class MultipleSelection : MonoBehaviour
     private void ResetMultipleSelections()
     {
         foreach (Transform t in multipleObjects)
-        {
             RestoreOriginalMaterials(t);
-        }
 
         multipleObjects.Clear();
         originalMaterials.Clear();
+        pivotParent = null;
     }
     #endregion
 
-    #region Movement
-    private void MoveSelectedObjects(Vector3 newPos)
+    #region Drag Logic
+    private void StartDragging()
     {
-        Vector3 delta = newPos - multipleObjects[0].position;
+        if (multipleObjects.Count == 0) return;
 
-        foreach (Transform t in multipleObjects)
+        // Parent all to pivotParent
+        foreach (Transform obj in multipleObjects)
         {
-            t.position += delta;
+            if (obj != pivotParent)
+                obj.SetParent(pivotParent);
         }
+
+        isDragging = true;
     }
 
+    private void Dragging(Vector2? touchPos = null)
+    {
+        if (pivotParent == null) return;
+
+        Vector3 worldPos;
+
+        if (touchPos.HasValue)
+            worldPos = GetTouchWorldPosition(touchPos.Value);
+        else
+            worldPos = GetMouseWorldPosition();
+
+        // Keep Y constant
+        worldPos.y = pivotParent.position.y;
+
+        pivotParent.position = worldPos;
+    }
+
+    private void StopDragging()
+    {
+        // Unparent all objects and restore materials
+        foreach (Transform obj in multipleObjects)
+        {
+            obj.SetParent(null);
+            RestoreOriginalMaterials(obj);
+        }
+
+        // Clear data
+        multipleObjects.Clear();
+        originalMaterials.Clear();
+        pivotParent = null;
+        isDragging = false;
+    }
+    #endregion
+
+    #region Helpers
     private Vector3 GetMouseWorldPosition()
     {
         Ray ray = cam.ScreenPointToRay(Input.mousePosition);
@@ -145,9 +232,19 @@ public class MultipleSelection : MonoBehaviour
         float distance;
 
         if (groundPlane.Raycast(ray, out distance))
-        {
             return ray.GetPoint(distance);
-        }
+
+        return Vector3.zero;
+    }
+
+    private Vector3 GetTouchWorldPosition(Vector2 touchPos)
+    {
+        Ray ray = cam.ScreenPointToRay(touchPos);
+        Plane groundPlane = new Plane(Vector3.up, Vector3.zero);
+        float distance;
+
+        if (groundPlane.Raycast(ray, out distance))
+            return ray.GetPoint(distance);
 
         return Vector3.zero;
     }

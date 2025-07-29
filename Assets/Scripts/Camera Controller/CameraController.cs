@@ -26,21 +26,24 @@ public class CameraController : MonoBehaviour
 
     public event Action viewMode;
 
-    // Zoom settings for orthographic camera
-    public float zoomSpeed = 2f;  // Speed of zoom when scrolling
-    public float minOrthographicSize = 5f; // Minimum orthographic size
-    public float maxOrthographicSize = 20f; // Maximum orthographic size
+    // Zoom settings
+    public float zoomSpeed = 2f;
+    public float minOrthographicSize = 5f;
+    public float maxOrthographicSize = 20f;
 
     // Panning settings
-    public float panSpeed = 0.5f;  // Speed of camera panning when holding left mouse button
+    public float panSpeed = 0.5f;
     private Vector3 dragOrigin;
-    private bool canPan = false;  // Track if panning is allowed (initially false)
-    private bool isPanning = false;  // Track if we're currently panning
+    private bool canPan = false;
+    private bool isPanning = false;
 
     [Space]
-
     [Header("Objects To Hide in TopView")]
     public GameObject[] hideObjects;
+
+    // Pinch zoom
+    private float lastPinchDistance;
+    private bool isPinching = false;
 
     private void Awake()
     {
@@ -60,24 +63,29 @@ public class CameraController : MonoBehaviour
 
     private void Update()
     {
-        // Check for mouse scroll wheel input and adjust orthographic size if in top view
+#if UNITY_EDITOR || UNITY_WEBGL
+        // Mouse scroll zoom and panning
         HandleMouseScroll();
 
-        // Handle camera panning when left mouse button is held down
-        if (Input.GetMouseButtonDown(0))  // Left mouse button pressed down
+        if (Input.GetMouseButtonDown(0))
         {
             OnMouseDown();
         }
 
-        if (Input.GetMouseButton(0) && canPan)  // Left mouse button held down and panning is allowed
+        if (Input.GetMouseButton(0) && canPan)
         {
             HandleCameraPan();
         }
 
-        if (Input.GetMouseButtonUp(0))  // Left mouse button released
+        if (Input.GetMouseButtonUp(0))
         {
             OnMouseUp();
         }
+#else
+        // Android: pinch zoom + single finger pan
+        HandleTouchZoom();
+        HandleTouchPan();
+#endif
     }
 
     public void OnToggleView()
@@ -85,7 +93,6 @@ public class CameraController : MonoBehaviour
         if (!cameraToggle)
         {
             cameraToggle = true;
-            Debug.Log("Top View!");
             CameraText.text = "TOP VIEW";
             TopView_Setup();
             viewMode?.Invoke();
@@ -93,7 +100,6 @@ public class CameraController : MonoBehaviour
         else
         {
             cameraToggle = false;
-            Debug.Log("FPS View");
             CameraText.text = "FPS VIEW";
             FPS_Setup();
             viewMode?.Invoke();
@@ -103,36 +109,28 @@ public class CameraController : MonoBehaviour
     [Button]
     public void TopView_Setup()
     {
-        for(int i =0; i < hideObjects.Length; i++)
+        for (int i = 0; i < hideObjects.Length; i++)
         {
             hideObjects[i].SetActive(false);
         }
 
-        // Disable ceiling if it exists
         if (myCeiling != null)
         {
             myCeiling.SetActive(false);
         }
 
-        // Disable FPS controller
         FPSController.enabled = false;
-
-        // Store the current camera rotation as last rotation before switching views
         cameraLastRotation = myCamera.transform.localRotation;
 
-        // Set camera to top view rig
         myCamera.transform.parent = TopView_CameraRig.transform;
         myCamera.transform.localPosition = Vector3.zero;
         myCamera.transform.localScale = Vector3.one;
-
-        // Set the local rotation to match the parent's rotation
         myCamera.transform.localRotation = Quaternion.identity;
 
-        // Change the camera to orthographic mode
         if (myCamera != null)
         {
             myCamera.orthographic = true;
-            myCamera.orthographicSize = 10; // Adjust based on your scene scale
+            myCamera.orthographicSize = 10;
         }
     }
 
@@ -144,30 +142,24 @@ public class CameraController : MonoBehaviour
             hideObjects[i].SetActive(true);
         }
 
-        // Enable FPS controller
         FPSController.enabled = true;
 
-        // Enable ceiling if it exists
         if (myCeiling != null)
         {
             myCeiling.SetActive(true);
         }
 
-        // Set the camera to the FPS view rig
         myCamera.transform.parent = FPSView_CameraRig.transform;
         myCamera.transform.localPosition = new Vector3(0, 0.85f, 0);
-
-        // Restore the last local rotation of the camera
         myCamera.transform.localRotation = cameraLastRotation;
 
-        // Change the camera to perspective mode
         if (myCamera != null)
         {
             myCamera.orthographic = false;
         }
     }
 
-    // Handle mouse scroll wheel for zoom in/out when camera is orthographic
+    // ===== Mouse Zoom (Editor/WebGL) =====
     private void HandleMouseScroll()
     {
         if (myCamera != null && myCamera.orthographic)
@@ -175,41 +167,34 @@ public class CameraController : MonoBehaviour
             float scrollInput = Input.GetAxis("Mouse ScrollWheel");
             if (scrollInput != 0f)
             {
-                // Adjust the orthographic size based on scroll input
                 myCamera.orthographicSize -= scrollInput * zoomSpeed;
-
-                // Clamp the orthographic size to min/max values
                 myCamera.orthographicSize = Mathf.Clamp(myCamera.orthographicSize, minOrthographicSize, maxOrthographicSize);
             }
         }
     }
 
-    // Handle mouse down logic (when left mouse button is first pressed)
+    // ===== Mouse Pan (Editor/WebGL) =====
     private void OnMouseDown()
     {
         Ray ray = myCamera.ScreenPointToRay(Input.mousePosition);
         RaycastHit hit;
 
-        // Raycast to check if the mouse is pointing to the ground (tag "Floor")
         if (Physics.Raycast(ray, out hit))
         {
             if (hit.collider.CompareTag("Floor"))
             {
-                // Start panning if the raycast hits the "Floor"
                 dragOrigin = hit.point;
-                canPan = true;  // Allow panning
-                isPanning = true;  // We're now in panning mode
+                canPan = true;
+                isPanning = true;
             }
             else
             {
-                // Don't start panning if we hit something other than "Floor"
                 canPan = false;
                 isPanning = false;
             }
         }
     }
 
-    // Handle camera panning while left mouse button is held down
     private void HandleCameraPan()
     {
         if (myCamera != null && myCamera.orthographic && isPanning)
@@ -217,30 +202,101 @@ public class CameraController : MonoBehaviour
             Ray ray = myCamera.ScreenPointToRay(Input.mousePosition);
             RaycastHit hit;
 
-            // Raycast to check if the mouse is pointing to the ground (tag "Floor")
             if (Physics.Raycast(ray, out hit))
             {
                 if (hit.collider.CompareTag("Floor"))
                 {
-                    // Pan the camera
-                    Vector3 direction = dragOrigin - hit.point;  // Calculate the difference between the start point and current hit point
+                    Vector3 direction = dragOrigin - hit.point;
                     Vector3 newPos = myCamera.transform.position + direction;
+                    newPos.y = myCamera.transform.position.y;
 
-                    // Only move along the X and Z axes (top-down view)
-                    newPos.y = myCamera.transform.position.y;  // Keep the camera at the same height
-
-                    // Apply the new position
                     myCamera.transform.position = Vector3.Lerp(myCamera.transform.position, newPos, panSpeed * Time.deltaTime);
                 }
             }
         }
     }
 
-    // Handle mouse up logic (when left mouse button is released)
     private void OnMouseUp()
     {
-        // Reset everything when the mouse is released
         canPan = false;
         isPanning = false;
+    }
+
+    // ===== Android Pinch Zoom =====
+    private void HandleTouchZoom()
+    {
+        if (myCamera == null || !myCamera.orthographic) return;
+
+        if (Input.touchCount == 2)
+        {
+            Touch touch1 = Input.GetTouch(0);
+            Touch touch2 = Input.GetTouch(1);
+
+            float currentDistance = Vector2.Distance(touch1.position, touch2.position);
+
+            if (!isPinching)
+            {
+                lastPinchDistance = currentDistance;
+                isPinching = true;
+            }
+            else
+            {
+                float delta = currentDistance - lastPinchDistance;
+                myCamera.orthographicSize -= delta * (zoomSpeed * 0.01f);
+                myCamera.orthographicSize = Mathf.Clamp(myCamera.orthographicSize, minOrthographicSize, maxOrthographicSize);
+                lastPinchDistance = currentDistance;
+            }
+        }
+        else
+        {
+            isPinching = false;
+        }
+    }
+
+    // ===== Android Single Finger Pan =====
+    private void HandleTouchPan()
+    {
+        if (myCamera == null || !myCamera.orthographic) return;
+        if (Input.touchCount == 1 && !isPinching)
+        {
+            Touch touch = Input.GetTouch(0);
+
+            if (touch.phase == TouchPhase.Began)
+            {
+                Ray ray = myCamera.ScreenPointToRay(touch.position);
+                RaycastHit hit;
+
+                if (Physics.Raycast(ray, out hit))
+                {
+                    if (hit.collider.CompareTag("Floor"))
+                    {
+                        dragOrigin = hit.point;
+                        isPanning = true;
+                    }
+                    else
+                    {
+                        isPanning = false;
+                    }
+                }
+            }
+            else if (touch.phase == TouchPhase.Moved && isPanning)
+            {
+                Ray ray = myCamera.ScreenPointToRay(touch.position);
+                RaycastHit hit;
+
+                if (Physics.Raycast(ray, out hit) && hit.collider.CompareTag("Floor"))
+                {
+                    Vector3 direction = dragOrigin - hit.point;
+                    Vector3 newPos = myCamera.transform.position + direction;
+                    newPos.y = myCamera.transform.position.y;
+
+                    myCamera.transform.position = Vector3.Lerp(myCamera.transform.position, newPos, panSpeed * Time.deltaTime);
+                }
+            }
+            else if (touch.phase == TouchPhase.Ended || touch.phase == TouchPhase.Canceled)
+            {
+                isPanning = false;
+            }
+        }
     }
 }
