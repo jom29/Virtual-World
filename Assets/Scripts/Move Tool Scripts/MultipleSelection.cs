@@ -19,6 +19,13 @@ public class MultipleSelection : MonoBehaviour
 
     private MeshSelectorAndMover singleSelector; // reference to single selection script
 
+    // --- Added for Android drag threshold ---
+    [Header("Android Drag Sensitivity")]
+    public float dragThreshold = 15f;   // pixels before drag starts
+    private Vector2 dragStartPos;       // where touch started
+    private bool dragThresholdPassed = false;
+    // ---------------------------------------
+
     private void Awake()
     {
         singleSelector = FindObjectOfType<MeshSelectorAndMover>();
@@ -79,14 +86,27 @@ public class MultipleSelection : MonoBehaviour
             switch (touch.phase)
             {
                 case TouchPhase.Began:
+                    // Record start position for threshold calculation
+                    dragStartPos = touch.position;
+                    dragThresholdPassed = false;
                     MultipleSelection_Method_Touch(touch.position);
                     break;
 
                 case TouchPhase.Moved:
-                    if (!isDragging)
-                        StartDragging();
-
-                    Dragging(touch.position);
+                    // Only start dragging if movement passes threshold
+                    if (!dragThresholdPassed)
+                    {
+                        float distance = Vector2.Distance(dragStartPos, touch.position);
+                        if (distance > dragThreshold)
+                        {
+                            StartDragging();
+                            dragThresholdPassed = true;
+                        }
+                    }
+                    else
+                    {
+                        Dragging(touch.position);
+                    }
                     break;
 
                 case TouchPhase.Ended:
