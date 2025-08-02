@@ -21,7 +21,7 @@ public class PrefabSpawner : MonoBehaviour
     public InputField defaultRotationY_Input;
     [Foldout("Default Furniture Properties")]
     public InputField defaultYAxis_Input;
-
+    public MeshSelectorAndMover moverScript;
 
 
     [Foldout("Default Furniture Properties")]
@@ -40,6 +40,10 @@ public class PrefabSpawner : MonoBehaviour
         // Left mouse click to spawn
         if (Input.GetMouseButtonDown(0) && instantiate)
         {
+            // Prevent spawning if already moving a selected object
+            if ( moverScript.currentlySelectedObject != null && moverScript.isMoving)
+                return;
+
             if (IsPointerOverUI())
                 return;
 
@@ -50,19 +54,15 @@ public class PrefabSpawner : MonoBehaviour
             {
                 if (hit.collider.CompareTag("Floor"))
                 {
-                    //CONVERT DEFAULT Y ROTATION & Y AXIS
-                   defaultYRot = float.Parse(defaultRotationY_Input.text);
-                   defaultYAxis = float.Parse(defaultYAxis_Input.text);
+                    // Convert default rotation and Y axis from input fields
+                    defaultYRot = float.Parse(defaultRotationY_Input.text);
+                    defaultYAxis = float.Parse(defaultYAxis_Input.text);
 
                     Vector3 myHitPoint = new Vector3(hit.point.x, defaultYAxis, hit.point.z);
                     Quaternion myQuaternion = Quaternion.Euler(0f, defaultYRot, 0f);
 
-
                     // Instantiate prefab at hit point
-                    // GameObject spawnedObject = Instantiate(prefab, hit.point, Quaternion.identity);
-
                     GameObject spawnedObject = Instantiate(prefab, myHitPoint, myQuaternion);
-
 
                     // Naming & tracking
                     indexNameTracker++;
@@ -84,7 +84,10 @@ public class PrefabSpawner : MonoBehaviour
                 }
             }
         }
+
+
     }
+
 
     // Toggle instantiate mode
     public void ToggleInstantiate()
@@ -101,6 +104,19 @@ public class PrefabSpawner : MonoBehaviour
         {
             instantiateTxt_InTopView.text = "INSTANTIATE: " + (instantiate ? "ON" : "OFF");
             instantiateTxt_InTopView.color = instantiate ? Color.yellow : Color.white;
+        }
+    }
+
+    public Text instantiateText_InFurnitureTab;
+
+    public void ToggleInstantiate_InFurnitureTab()
+    {
+        instantiate = !instantiate;
+
+        if (instantiateText_InFurnitureTab != null)
+        {
+            instantiateText_InFurnitureTab.text = "INSTANTIATE: " + (instantiate ? "ON" : "OFF");
+            instantiateTxt.color = instantiate ? Color.yellow : Color.white;
         }
     }
 

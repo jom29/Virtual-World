@@ -4,6 +4,7 @@ using UnityEngine;
 using NaughtyAttributes;
 using UnityEngine.UI;
 using TMPro;
+using Unity.VisualScripting;
 
 public class FurnitureSelector : MonoBehaviour
 {
@@ -17,6 +18,9 @@ public class FurnitureSelector : MonoBehaviour
 
     [Foldout("TABLES CATEGORY")]
     public GameObject[] Tables;
+
+    [Foldout("PROPS CATEGORY")] // <-- Added new category
+    public GameObject[] Props;
 
     public GameObject FurnitureBtn;
     public Transform targetParent;
@@ -41,11 +45,16 @@ public class FurnitureSelector : MonoBehaviour
         PopulateCategory("Chair", Chairs);
     }
 
-    // Add more later (e.g., Tables)
     [Button]
     public void SelectTable()
     {
         PopulateCategory("Table", Tables);
+    }
+
+    [Button] // <-- Added new function for Props
+    public void SelectProp()
+    {
+        PopulateCategory("Prop", Props);
     }
 
     // -------------------
@@ -122,6 +131,9 @@ public class FurnitureSelector : MonoBehaviour
             case "Table":
                 activeArray = Tables;
                 break;
+            case "Prop": // <-- Added for Props
+                activeArray = Props;
+                break;
         }
 
         // Find match by name
@@ -137,12 +149,11 @@ public class FurnitureSelector : MonoBehaviour
             }
         }
 
-
-        //SET THE PREFAB 
-        if(prefabSpawnerScript != null)
+        // Set the prefab
+        if (prefabSpawnerScript != null)
         {
-            prefabSpawnerScript.instantiate = true;
             prefabSpawnerScript.prefab = currentSelectionFurniture;
         }
     }
+   
 }

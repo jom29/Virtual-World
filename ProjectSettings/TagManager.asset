@@ -9,6 +9,7 @@ TagManager:
   - Ceiling
   - Other
   - Savable
+  - Structure
   layers:
   - Default
   - TransparentFX

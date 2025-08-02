@@ -1,4 +1,4 @@
-using UnityEngine;
+﻿using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.EventSystems;
 using System.Collections.Generic;
@@ -9,12 +9,12 @@ using NaughtyAttributes;
 public class MeshSelectorAndMover : MonoBehaviour
 {
     public PropertiesDisplayer propertiesDisplayerScript;
-
+    public PrefabSpawner prefabSpawnerScript;
     private Camera mainCamera;
     private Transform selectedObject;
     private Vector3 targetPosition;
     public float smoothSpeed = 15f;
-    private bool isMoving = false;
+    public bool isMoving = false;
     public float rotationSpeed = 100f;
     private Vector3 lastMousePosition;
     public Toggle rotateToggle;
@@ -156,6 +156,9 @@ public class MeshSelectorAndMover : MonoBehaviour
         {
             if (isFPSControllerActive && selectedObject.CompareTag("GeneratedMesh") && IsTooCloseToFPSController())
             {
+                
+                StopMoving();
+                prefabSpawnerScript.instantiate = false;
                 isMoving = false;
             }
             else
@@ -167,6 +170,7 @@ public class MeshSelectorAndMover : MonoBehaviour
 
         if (Input.GetMouseButtonUp(0))
         {
+            StopMoving();
             selectedObject = null;
             isMoving = false;
         }
@@ -193,6 +197,7 @@ public class MeshSelectorAndMover : MonoBehaviour
 
         if (Input.GetMouseButtonUp(0))
         {
+            StopMoving();
             selectedObject = null;
         }
     }
@@ -227,6 +232,8 @@ public class MeshSelectorAndMover : MonoBehaviour
         {
             if (isFPSControllerActive && selectedObject.CompareTag("GeneratedMesh") && IsTooCloseToFPSController())
             {
+                StopMoving();
+                prefabSpawnerScript.instantiate = false;
                 isMoving = false;
             }
             else
@@ -238,6 +245,7 @@ public class MeshSelectorAndMover : MonoBehaviour
 
         if (touch.phase == TouchPhase.Ended)
         {
+            StopMoving();
             selectedObject = null;
             isMoving = false;
         }
@@ -276,22 +284,107 @@ public class MeshSelectorAndMover : MonoBehaviour
 
         if (touch.phase == TouchPhase.Ended)
         {
+            StopMoving();
             selectedObject = null;
         }
     }
 
-    // -------------------- Shared Methods --------------------
+
+
+    private int originalLayer;
+
+
+    private void UpdateTargetPosition()
+    {
+        Ray ray = mainCamera.ScreenPointToRay(Input.mousePosition);
+        RaycastHit hit;
+
+     
+
+        if (!mainCamera.orthographic)
+        {
+            if (Physics.Raycast(ray, out hit))
+            {
+                if (selectedObject != null)
+                {
+                    if (selectedObject.CompareTag("Structure"))
+                    {
+                        if (hit.collider.CompareTag("Floor"))
+                        {
+                            targetPosition = new Vector3(hit.point.x, selectedObject.position.y, hit.point.z);
+                        }
+                    }
+                    else if (selectedObject.CompareTag("Other"))
+                    {
+                        if (hit.collider.CompareTag("Structure") || hit.collider.CompareTag("Floor"))
+                        {
+                            targetPosition = new Vector3(hit.point.x, hit.point.y, hit.point.z);
+                        }
+                    }
+                    else if (selectedObject.CompareTag("GeneratedMesh"))
+                    {
+                        if (hit.collider.CompareTag("Floor"))
+                        {
+                            targetPosition = new Vector3(hit.point.x, selectedObject.position.y, hit.point.z);
+                        }
+                    }
+                }
+            }
+        }
+        else
+        {
+            // Orthographic mode — fallback logic included
+            if (Physics.Raycast(ray, out hit))
+            {
+                if (selectedObject != null)
+                {
+                    if (selectedObject.CompareTag("Structure"))
+                    {
+                        if (hit.collider.CompareTag("Floor"))
+                        {
+                            targetPosition = new Vector3(hit.point.x, selectedObject.position.y, hit.point.z);
+                        }
+                    }
+                    else if (selectedObject.CompareTag("Other"))
+                    {
+                        if (hit.collider.CompareTag("Structure") || hit.collider.CompareTag("Floor"))
+                        {
+                            targetPosition = new Vector3(hit.point.x, hit.point.y, hit.point.z);
+                        }
+                    }
+                    else
+                    {
+                        Vector3 position = ray.GetPoint(10);
+                        targetPosition = new Vector3(position.x, selectedObject.position.y, position.z);
+                    }
+                }
+            }
+            else
+            {
+                Vector3 position = ray.GetPoint(10);
+                targetPosition = new Vector3(position.x, selectedObject.position.y, position.z);
+            }
+        }
+    }
+
+    // -------------------- Selection --------------------
     private void SelectMeshObject()
     {
         Ray ray = mainCamera.ScreenPointToRay(Input.mousePosition);
         RaycastHit hit;
 
-        if (Physics.Raycast(ray, out hit) && (hit.collider.CompareTag("GeneratedMesh") || hit.collider.CompareTag("Other")))
+        if (Physics.Raycast(ray, out hit) &&
+            (hit.collider.CompareTag("GeneratedMesh") || hit.collider.CompareTag("Other") || hit.collider.CompareTag("Structure")))
         {
             selectedObject = hit.transform;
             isMoving = true;
             targetPosition = selectedObject.position;
 
+            // Store original layer and move to IgnoreRaycast
+            originalLayer = selectedObject.gameObject.layer;
+            selectedObject.gameObject.layer = LayerMask.NameToLayer("Ignore Raycast");
+
+            // Handle multiple vs single selection
             if (!multipleSelectionScript.isMultipleSelection)
             {
                 currentlySelectedObject = hit.transform.gameObject;
@@ -319,27 +412,25 @@ public class MeshSelectorAndMover : MonoBehaviour
             propertiesDisplayerScript.DisplayTargetProperties("Furniture");
         else if (hit.collider.CompareTag("GeneratedMesh"))
             propertiesDisplayerScript.DisplayTargetProperties("CustomShape");
+        else if (hit.collider.CompareTag("Structure"))
+            propertiesDisplayerScript.DisplayTargetProperties("Furniture");
     }
 
-    private void UpdateTargetPosition()
+
+    // -------------------- Stop Moving --------------------
+    public void StopMoving()
     {
-        if (!mainCamera.orthographic)
-        {
-            Ray ray = mainCamera.ScreenPointToRay(Input.mousePosition);
-            RaycastHit hit;
+        isMoving = false;
 
-            if (Physics.Raycast(ray, out hit) && hit.collider.CompareTag("Floor"))
-            {
-                targetPosition = new Vector3(hit.point.x, selectedObject.position.y, hit.point.z);
-            }
-        }
-        else
+        // Restore original layer
+        if (selectedObject != null)
         {
-            Ray ray = mainCamera.ScreenPointToRay(Input.mousePosition);
-            Vector3 position = ray.GetPoint(10);
-            targetPosition = new Vector3(position.x, selectedObject.position.y, position.z);
+            selectedObject.gameObject.layer = originalLayer;
         }
     }
+
+
+
 
     private bool IsTooCloseToFPSController()
     {

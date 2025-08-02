@@ -20,6 +20,8 @@ public class FirstPersonController : MonoBehaviour
     public AssetBundleLoader assetBundleLoaderScript;
     public PrefabSpawner prefabSpawnerScript;
 
+    public MeshSelectorAndMover moverScript;
+
 #if UNITY_ANDROID
     private Vector3 targetPosition;
     private bool hasTarget = false;
@@ -76,12 +78,17 @@ public class FirstPersonController : MonoBehaviour
     {
         if (Input.GetKeyDown(KeyCode.R) && isRotatingCamera)
         {
+            moverScript.enabled = true;
+
+
             cameraRotationTextStatus.text = "Rotated Camera: Off";
             isRotatingCamera = false;
             if (MenuGO != null) MenuGO.SetActive(true);
         }
         else if (Input.GetKeyDown(KeyCode.R) && !isRotatingCamera)
         {
+            moverScript.enabled = false;
+
             cameraRotationTextStatus.text = "Rotated Camera: On";
             isRotatingCamera = true;
             if (MenuGO != null)

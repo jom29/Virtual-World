@@ -11,7 +11,7 @@ GameObject:
   - component: {fileID: 1613672580848759737}
   - component: {fileID: 3117785479808155998}
   - component: {fileID: 4059594219676804391}
-  m_Layer: 9
+  m_Layer: 0
   m_Name: CandleFire
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -96,7 +96,7 @@ GameObject:
   - component: {fileID: 726338751488240791}
   - component: {fileID: 1802343139253090577}
   - component: {fileID: 1981201199208390162}
-  m_Layer: 9
+  m_Layer: 0
   m_Name: Diamond
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -180,7 +180,7 @@ GameObject:
   m_Component:
   - component: {fileID: 443573352812991605}
   - component: {fileID: 1133629664542210738}
-  m_Layer: 9
+  m_Layer: 0
   m_Name: Point Light
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -276,7 +276,7 @@ GameObject:
   - component: {fileID: 2167091131279557938}
   - component: {fileID: 7610429973799469429}
   - component: {fileID: 278649674040308903}
-  m_Layer: 9
+  m_Layer: 0
   m_Name: LOD Chandelier 1
   m_TagString: Other
   m_Icon: {fileID: 0}
@@ -403,7 +403,7 @@ GameObject:
   - component: {fileID: 3710527742873074257}
   - component: {fileID: 7611497731150706029}
   - component: {fileID: 2979691781785773675}
-  m_Layer: 9
+  m_Layer: 0
   m_Name: FBXChandelier_Far
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -493,7 +493,7 @@ GameObject:
   - component: {fileID: 5360372197518411637}
   - component: {fileID: 7947751816983880826}
   - component: {fileID: 8254409346788745242}
-  m_Layer: 9
+  m_Layer: 0
   m_Name: FBXChandelier
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -583,7 +583,7 @@ GameObject:
   - component: {fileID: 2212581727483464759}
   - component: {fileID: 1272520715205081722}
   - component: {fileID: 1462089542656362939}
-  m_Layer: 9
+  m_Layer: 0
   m_Name: CandleStick_mesh
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -668,7 +668,7 @@ GameObject:
   - component: {fileID: 6021881638089062173}
   - component: {fileID: 4549002027000637608}
   - component: {fileID: 3358983730866789689}
-  m_Layer: 9
+  m_Layer: 0
   m_Name: sphereObjects
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -752,7 +752,7 @@ GameObject:
   m_Component:
   - component: {fileID: 5758744348127268707}
   - component: {fileID: 8295382862334553811}
-  m_Layer: 9
+  m_Layer: 0
   m_Name: Reflection Probe
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -818,7 +818,7 @@ GameObject:
   - component: {fileID: 6130281753328163150}
   - component: {fileID: 5105642553162782874}
   - component: {fileID: 2858609432896363248}
-  m_Layer: 9
+  m_Layer: 0
   m_Name: Candle_Holder
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -903,7 +903,7 @@ GameObject:
   - component: {fileID: 1533277664492943028}
   - component: {fileID: 4306982466338420182}
   - component: {fileID: 8671950195982646440}
-  m_Layer: 9
+  m_Layer: 0
   m_Name: sphereObjects
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -988,7 +988,7 @@ GameObject:
   - component: {fileID: 8167570560673533612}
   - component: {fileID: 54068209169966643}
   - component: {fileID: 5189987393464773259}
-  m_Layer: 9
+  m_Layer: 0
   m_Name: CandleFire
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -1073,7 +1073,7 @@ GameObject:
   - component: {fileID: 5028558799673526638}
   - component: {fileID: 8358916483584732953}
   - component: {fileID: 1351632686143304203}
-  m_Layer: 9
+  m_Layer: 0
   m_Name: Candle_Holder
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -1158,7 +1158,7 @@ GameObject:
   - component: {fileID: 5777019441546530158}
   - component: {fileID: 8957490178971136842}
   - component: {fileID: 6072980692050733912}
-  m_Layer: 9
+  m_Layer: 0
   m_Name: CandleStick_mesh
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -1243,7 +1243,7 @@ GameObject:
   - component: {fileID: 1861307499399163526}
   - component: {fileID: 2886192510568792120}
   - component: {fileID: 5600799555488386986}
-  m_Layer: 9
+  m_Layer: 0
   m_Name: Diamond
   m_TagString: Untagged
   m_Icon: {fileID: 0}
