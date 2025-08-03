@@ -63,30 +63,32 @@ public class CameraController : MonoBehaviour
 
     private void Update()
     {
-#if UNITY_EDITOR || UNITY_WEBGL
-        // Mouse scroll zoom and panning
-        HandleMouseScroll();
+        // Detect if running WebGL mobile (browser on phone/tablet)
+        bool isWebGLMobile = Application.platform == RuntimePlatform.WebGLPlayer && Application.isMobilePlatform;
 
-        if (Input.GetMouseButtonDown(0))
+        // --- Desktop WebGL & Editor ---
+        if (!isWebGLMobile && (Application.platform == RuntimePlatform.WebGLPlayer || Application.isEditor))
         {
-            OnMouseDown();
-        }
+            // Mouse scroll zoom and panning
+            HandleMouseScroll();
 
-        if (Input.GetMouseButton(0) && canPan)
-        {
-            HandleCameraPan();
-        }
+            if (Input.GetMouseButtonDown(0))
+                OnMouseDown();
 
-        if (Input.GetMouseButtonUp(0))
-        {
-            OnMouseUp();
+            if (Input.GetMouseButton(0) && canPan)
+                HandleCameraPan();
+
+            if (Input.GetMouseButtonUp(0))
+                OnMouseUp();
         }
-#else
-        // Android: pinch zoom + single finger pan
-        HandleTouchZoom();
-        HandleTouchPan();
-#endif
+        else
+        {
+            // --- Android & WebGL Mobile ---
+            HandleTouchZoom();
+            HandleTouchPan();
+        }
     }
+
 
     public void OnToggleView()
     {

@@ -31,6 +31,16 @@ public class FirstPersonController : MonoBehaviour
     private float touchSensitivity = 0.2f; // Adjust for swipe feel
 #endif
 
+#if !UNITY_ANDROID
+    // WebGL mobile (browser on phone) variables
+    private Vector3 webglTargetPosition;
+    private bool webglHasTarget = false;
+
+    private Vector2 webglLastTouchPosition;
+    private bool webglIsSwiping = false;
+    private float webglTouchSensitivity = 0.2f;
+#endif
+
     private void Start()
     {
         controller = GetComponent<CharacterController>();
@@ -38,6 +48,8 @@ public class FirstPersonController : MonoBehaviour
 
 #if UNITY_ANDROID
         targetPosition = transform.position;
+#else
+        webglTargetPosition = transform.position;
 #endif
     }
 
@@ -80,7 +92,6 @@ public class FirstPersonController : MonoBehaviour
         {
             moverScript.enabled = true;
 
-
             cameraRotationTextStatus.text = "Rotated Camera: Off";
             isRotatingCamera = false;
             if (MenuGO != null) MenuGO.SetActive(true);
@@ -108,9 +119,14 @@ public class FirstPersonController : MonoBehaviour
         RotateCameraController();
 
 #if UNITY_ANDROID
+        // Native Android build logic
         HandleAndroidControls();
 #else
-        HandleWebGLAndEditorControls();
+        // WebGL desktop vs mobile detection
+        if (Application.isMobilePlatform)
+            HandleWebGLMobileControls();  // Mobile browser logic (tap to move + swipe)
+        else
+            HandleWebGLAndEditorControls(); // PC browser / Editor logic (WASD + mouse)
 #endif
     }
 
@@ -129,6 +145,7 @@ public class FirstPersonController : MonoBehaviour
     }
 
 #if UNITY_ANDROID
+    // ---------------------- ANDROID ----------------------
     private void HandleAndroidControls()
     {
         if (Input.touchCount > 0)
@@ -137,9 +154,7 @@ public class FirstPersonController : MonoBehaviour
 
             if (touch.phase == TouchPhase.Began)
             {
-                // Prevent swipe/tap if touch begins on UI
-                if (IsTouchOverUI(touch.position))
-                    return;
+                if (IsTouchOverUI(touch.position)) return;
 
                 lastTouchPosition = touch.position;
                 isSwiping = false;
@@ -148,15 +163,12 @@ public class FirstPersonController : MonoBehaviour
             {
                 Vector2 delta = touch.deltaPosition;
 
-                // Threshold to determine swipe vs tap
-                if (delta.magnitude > 10f)
-                    isSwiping = true;
+                if (delta.magnitude > 10f) isSwiping = true;
 
                 if (isSwiping)
                 {
-                    // Rotate camera by swipe
-                    float rotX = delta.y * -touchSensitivity; // swipe up/down = pitch
-                    float rotY = delta.x * touchSensitivity;  // swipe left/right = yaw
+                    float rotX = delta.y * -touchSensitivity;
+                    float rotY = delta.x * touchSensitivity;
 
                     Vector3 rotation = playerCamera.transform.localEulerAngles;
                     rotation.x += rotX;
@@ -167,11 +179,8 @@ public class FirstPersonController : MonoBehaviour
             }
             else if (touch.phase == TouchPhase.Ended && !isSwiping)
             {
-                // Prevent move-to-point if touch ends on UI
-                if (IsTouchOverUI(touch.position))
-                    return;
+                if (IsTouchOverUI(touch.position)) return;
 
-                // Treat as tap — move to point
                 Ray ray = playerCamera.ScreenPointToRay(touch.position);
                 RaycastHit hit;
 
@@ -186,7 +195,6 @@ public class FirstPersonController : MonoBehaviour
             }
         }
 
-        // Move toward target
         if (hasTarget)
         {
             Vector3 direction = (targetPosition - transform.position);
@@ -205,6 +213,88 @@ public class FirstPersonController : MonoBehaviour
 #endif
 
 #if !UNITY_ANDROID
+    // ---------------------- WEBGL MOBILE ----------------------
+    private void HandleWebGLMobileControls()
+    {
+        if (Input.touchCount > 0)
+        {
+            Touch touch = Input.GetTouch(0);
+
+            if (touch.phase == TouchPhase.Began)
+            {
+                if (IsTouchOverUI(touch.position)) return;
+
+                webglLastTouchPosition = touch.position;
+                webglIsSwiping = false;
+            }
+            else if (touch.phase == TouchPhase.Moved)
+            {
+                Vector2 delta = touch.deltaPosition;
+
+                if (delta.magnitude > 10f) webglIsSwiping = true;
+
+                if (webglIsSwiping)
+                {
+                    // Horizontal: already reversed (keep as-is)
+                    float rotY = -delta.x * webglTouchSensitivity; // swipe right = look right
+
+                    // Vertical: reverse logic compared to current (fix here)
+                    float rotX = delta.y * webglTouchSensitivity;  // swipe up = look up
+
+                    Vector3 rotation = playerCamera.transform.localEulerAngles;
+                    rotation.x += rotX;   // Apply pitch (now correct)
+                    rotation.y += rotY;   // Apply yaw (kept correct)
+                    rotation.z = 0;
+
+                    // Clamp pitch to avoid flipping
+                    float pitch = rotation.x > 180 ? rotation.x - 360 : rotation.x;
+                    pitch = Mathf.Clamp(pitch, -80f, 80f);
+                    rotation.x = pitch < 0 ? 360 + pitch : pitch;
+
+                    playerCamera.transform.localEulerAngles = rotation;
+                }
+
+
+
+            }
+            else if (touch.phase == TouchPhase.Ended && !webglIsSwiping)
+            {
+                if (IsTouchOverUI(touch.position)) return;
+
+                // Tap to move
+                Ray ray = playerCamera.ScreenPointToRay(touch.position);
+                RaycastHit hit;
+
+                if (Physics.Raycast(ray, out hit))
+                {
+                    if (hit.collider.CompareTag("Floor"))
+                    {
+                        webglTargetPosition = hit.point;
+                        webglHasTarget = true;
+                    }
+                }
+            }
+        }
+
+        // Move toward target
+        if (webglHasTarget)
+        {
+            Vector3 direction = (webglTargetPosition - transform.position);
+            direction.y = 0;
+
+            if (direction.magnitude > 0.2f)
+            {
+                controller.Move(direction.normalized * speed * Time.deltaTime);
+            }
+            else
+            {
+                webglHasTarget = false;
+            }
+        }
+    }
+
+
+    // ---------------------- WEBGL DESKTOP + EDITOR ----------------------
     private void HandleWebGLAndEditorControls()
     {
         // Camera rotation

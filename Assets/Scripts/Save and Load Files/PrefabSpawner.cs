@@ -4,6 +4,7 @@ using UnityEngine.EventSystems;
 using UnityEngine.UI;
 using TMPro;
 using NaughtyAttributes;
+using System.Collections.Generic;
 public class PrefabSpawner : MonoBehaviour
 {
     [Header("Assign prefabs to spawn")]
@@ -34,59 +35,99 @@ public class PrefabSpawner : MonoBehaviour
         defaultRotationY_Input.text = 0.ToString();
         defaultYAxis_Input.text = 0.ToString();
     }
-
     void Update()
     {
-        // Left mouse click to spawn
-        if (Input.GetMouseButtonDown(0) && instantiate)
+        // -------- PC / Editor (mouse click) --------
+#if !UNITY_ANDROID
+        if (!Application.isMobilePlatform) // Desktop browser / Editor
         {
-            // Prevent spawning if already moving a selected object
-            if ( moverScript.currentlySelectedObject != null && moverScript.isMoving)
-                return;
-
-            if (IsPointerOverUI())
-                return;
-
-            RaycastHit hit;
-            Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
-
-            if (Physics.Raycast(ray, out hit))
+            if (Input.GetMouseButtonDown(0) && instantiate)
             {
-                if (hit.collider.CompareTag("Floor"))
+                // Prevent spawning if already moving a selected object
+                if (moverScript.currentlySelectedObject != null && moverScript.isMoving)
+                    return;
+
+                if (IsPointerOverUI())
+                    return;
+
+                RaycastHit hit;
+                Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
+
+                if (Physics.Raycast(ray, out hit))
                 {
-                    // Convert default rotation and Y axis from input fields
-                    defaultYRot = float.Parse(defaultRotationY_Input.text);
-                    defaultYAxis = float.Parse(defaultYAxis_Input.text);
-
-                    Vector3 myHitPoint = new Vector3(hit.point.x, defaultYAxis, hit.point.z);
-                    Quaternion myQuaternion = Quaternion.Euler(0f, defaultYRot, 0f);
-
-                    // Instantiate prefab at hit point
-                    GameObject spawnedObject = Instantiate(prefab, myHitPoint, myQuaternion);
-
-                    // Naming & tracking
-                    indexNameTracker++;
-                    spawnedObject.name = prefab.name + "_Track_" + indexNameTracker;
-
-                    // Add SaveableObject component for saving
-                    SaveableObject saveable = spawnedObject.GetComponent<SaveableObject>();
-                    if (saveable == null)
-                        saveable = spawnedObject.AddComponent<SaveableObject>();
-
-                    saveable.id = prefab.name;
-
-                    // Ensure collider exists
-                    if (spawnedObject.GetComponent<Collider>() == null)
-                        spawnedObject.AddComponent<BoxCollider>();
-
-                    // Set tag
-                    spawnedObject.tag = prefabTag;
+                    if (hit.collider.CompareTag("Floor"))
+                    {
+                        SpawnPrefabAtPoint(hit.point);
+                    }
                 }
             }
         }
+        else
+        {
+            // -------- WebGL Mobile (touch tap) --------
+            if (Input.touchCount > 0 && instantiate)
+            {
+                Touch touch = Input.GetTouch(0);
 
+                // Only spawn on touch release (tap) & not swiping
+                if (touch.phase == TouchPhase.Ended)
+                {
+                    // Prevent spawning if already moving a selected object
+                    if (moverScript.currentlySelectedObject != null && moverScript.isMoving)
+                        return;
 
+                    if (IsTouchOverUI(touch.position))
+                        return;
+
+                    Ray ray = Camera.main.ScreenPointToRay(touch.position);
+                    RaycastHit hit;
+
+                    if (Physics.Raycast(ray, out hit))
+                    {
+                        if (hit.collider.CompareTag("Floor"))
+                        {
+                            SpawnPrefabAtPoint(hit.point);
+                        }
+                    }
+                }
+            }
+        }
+#endif
     }
+
+
+
+    private void SpawnPrefabAtPoint(Vector3 hitPoint)
+    {
+        // Convert default rotation and Y axis from input fields
+        defaultYRot = float.Parse(defaultRotationY_Input.text);
+        defaultYAxis = float.Parse(defaultYAxis_Input.text);
+
+        Vector3 myHitPoint = new Vector3(hitPoint.x, defaultYAxis, hitPoint.z);
+        Quaternion myQuaternion = Quaternion.Euler(0f, defaultYRot, 0f);
+
+        // Instantiate prefab at hit point
+        GameObject spawnedObject = Instantiate(prefab, myHitPoint, myQuaternion);
+
+        // Naming & tracking
+        indexNameTracker++;
+        spawnedObject.name = prefab.name + "_Track_" + indexNameTracker;
+
+        // Add SaveableObject component for saving
+        SaveableObject saveable = spawnedObject.GetComponent<SaveableObject>();
+        if (saveable == null)
+            saveable = spawnedObject.AddComponent<SaveableObject>();
+
+        saveable.id = prefab.name;
+
+        // Ensure collider exists
+        if (spawnedObject.GetComponent<Collider>() == null)
+            spawnedObject.AddComponent<BoxCollider>();
+
+        // Set tag
+        spawnedObject.tag = prefabTag;
+    }
+
 
 
     // Toggle instantiate mode
@@ -138,6 +179,21 @@ public class PrefabSpawner : MonoBehaviour
             instantiateTxt.color = Color.white;
         }
     }
+
+
+    private bool IsTouchOverUI(Vector2 touchPosition)
+    {
+        if (EventSystem.current == null) return false;
+
+        PointerEventData eventData = new PointerEventData(EventSystem.current);
+        eventData.position = touchPosition;
+
+        var results = new List<RaycastResult>();
+        EventSystem.current.RaycastAll(eventData, results);
+
+        return results.Count > 0;
+    }
+
 
     // Detect UI clicks (ignore scene clicks when over UI)
     private bool IsPointerOverUI()
