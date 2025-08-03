@@ -10,11 +10,13 @@ public class MeshSelectorAndMover : MonoBehaviour
 {
     public PropertiesDisplayer propertiesDisplayerScript;
     public PrefabSpawner prefabSpawnerScript;
+    public UpdateTextInstantiate updateTxtInstantiate;
     private Camera mainCamera;
     private Transform selectedObject;
     private Vector3 targetPosition;
     public float smoothSpeed = 15f;
     public bool isMoving = false;
+    public bool isSelectOnlyMode;
     public float rotationSpeed = 100f;
     private Vector3 lastMousePosition;
     public Toggle rotateToggle;
@@ -156,7 +158,7 @@ public class MeshSelectorAndMover : MonoBehaviour
         {
             if (isFPSControllerActive && selectedObject.CompareTag("GeneratedMesh") && IsTooCloseToFPSController())
             {
-                
+
                 StopMoving();
                 prefabSpawnerScript.instantiate = false;
                 isMoving = false;
@@ -293,13 +295,32 @@ public class MeshSelectorAndMover : MonoBehaviour
 
     private int originalLayer;
 
+    public RectTransform selectionModeIcon;
+
+    public void SetSelect(bool select)
+    {
+        isSelectOnlyMode = select;
+        if(select)
+        {
+            prefabSpawnerScript.instantiate = false;
+            updateTxtInstantiate.updateText();
+            selectionModeIcon.anchoredPosition = new Vector2(-17.6428f, 14.18117f);
+        }
+
+        else
+        {
+            prefabSpawnerScript.instantiate = false;
+            updateTxtInstantiate.updateText();
+            selectionModeIcon.anchoredPosition = new Vector2(100, 14.18117f);
+        }
+    }
 
     private void UpdateTargetPosition()
     {
         Ray ray = mainCamera.ScreenPointToRay(Input.mousePosition);
         RaycastHit hit;
 
-     
+       if(!isSelectOnlyMode)
 
         if (!mainCamera.orthographic)
         {
