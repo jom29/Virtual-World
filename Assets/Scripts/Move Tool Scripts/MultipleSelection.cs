@@ -125,7 +125,7 @@ public class MultipleSelection : MonoBehaviour
         Ray ray = cam.ScreenPointToRay(Input.mousePosition);
         RaycastHit hit;
 
-        if (Physics.Raycast(ray, out hit) && (hit.collider.CompareTag("GeneratedMesh") || hit.collider.CompareTag("Other")))
+        if (Physics.Raycast(ray, out hit) && (hit.collider.CompareTag("GeneratedMesh") || hit.collider.CompareTag("Other") || hit.collider.CompareTag("Structure") || hit.collider.CompareTag("Chandelier")))
         {
             Transform target = hit.transform;
 
@@ -143,7 +143,7 @@ public class MultipleSelection : MonoBehaviour
         Ray ray = cam.ScreenPointToRay(touchPosition);
         RaycastHit hit;
 
-        if (Physics.Raycast(ray, out hit) && (hit.collider.CompareTag("GeneratedMesh") || hit.collider.CompareTag("Other")))
+        if (Physics.Raycast(ray, out hit) && (hit.collider.CompareTag("GeneratedMesh") || hit.collider.CompareTag("Other") || hit.collider.CompareTag("Structure") || hit.collider.CompareTag("Chandelier")))
         {
             Transform target = hit.transform;
 
