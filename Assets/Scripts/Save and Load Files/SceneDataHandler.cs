@@ -1,6 +1,8 @@
 ﻿using System.Collections.Generic;
 using UnityEngine;
 using System.Runtime.InteropServices;
+using UnityEngine.UI;
+using System.Collections;
 
 public class SceneDataHandler : MonoBehaviour
 {
@@ -19,6 +21,7 @@ public class SceneDataHandler : MonoBehaviour
         public List<ObjectData> objects = new List<ObjectData>();
     }
 
+    public FirstPersonController fpsController;
     public List<GameObject> prefabList;
     private Dictionary<string, GameObject> prefabDict = new Dictionary<string, GameObject>();
 
@@ -66,6 +69,50 @@ public class SceneDataHandler : MonoBehaviour
     // ====================
     // SAVE
     // ====================
+
+    public GameObject SaveFilePopupGO;
+    public InputField inputFileName;
+    public GameObject okBtn;
+    public string fileName;
+
+    public void SaveFileNamePopup()
+    {
+        fpsController.enabled = false;
+        SaveFilePopupGO.SetActive(true);
+        inputFileName.text = "";
+        warningText.text = "";
+        okBtn.SetActive(true);
+    }
+
+    public Text warningText;
+
+  
+    public void RenameSaveFile()
+    {
+        if(inputFileName.text == string.Empty)
+        {
+            warningText.text = "Invalid Input Please Put correct file name!";
+        }
+
+        else
+        {
+            fpsController.enabled = true;
+            fileName = inputFileName.text;
+            warningText.text = "Successfully saved file";
+            SaveScene();
+            okBtn.SetActive(false);
+            StartCoroutine(delayClosePopup());
+        }
+       
+    }
+
+
+    IEnumerator delayClosePopup()
+    {
+        yield return new WaitForSeconds(2);
+        SaveFilePopupGO.SetActive(false);
+    }
+
     public void SaveScene()
     {
         SceneData data = new SceneData();
@@ -90,7 +137,8 @@ public class SceneDataHandler : MonoBehaviour
 
 #if UNITY_WEBGL && !UNITY_EDITOR
         // WebGL download
-        DownloadFile("sceneData.json", json);
+        //DownloadFile("sceneData.json", json);
+        DownloadFile(fileName + ".json", json);
 #elif UNITY_ANDROID && !UNITY_EDITOR
         // Android: save to persistentDataPath
         string path = Application.persistentDataPath + "/sceneData.json";
@@ -98,7 +146,7 @@ public class SceneDataHandler : MonoBehaviour
         Debug.Log("Saved JSON to Android: " + path);
 #elif UNITY_EDITOR
         // Editor fallback: save locally
-        string path = Application.persistentDataPath + "/sceneData.json";
+        string path = Application.persistentDataPath + "/"+fileName+".json";
         System.IO.File.WriteAllText(path, json);
         Debug.Log("Saved JSON to Editor: " + path);
 #endif
