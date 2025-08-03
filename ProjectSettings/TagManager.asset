@@ -10,6 +10,7 @@ TagManager:
   - Other
   - Savable
   - Structure
+  - Chandelier
   layers:
   - Default
   - TransparentFX

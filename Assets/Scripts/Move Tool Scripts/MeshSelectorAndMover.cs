@@ -311,14 +311,30 @@ public class MeshSelectorAndMover : MonoBehaviour
                     {
                         if (hit.collider.CompareTag("Floor"))
                         {
-                            targetPosition = new Vector3(hit.point.x, selectedObject.position.y, hit.point.z);
+                            if(FreezeStructureManager.Instance.isMovable)
+                            {
+                                targetPosition = new Vector3(hit.point.x, selectedObject.position.y, hit.point.z);
+                            }
+                           
+                            else
+                            {
+                                Debug.Log("Could not move the object because Other layers are isolated!");
+                            }
                         }
                     }
-                    else if (selectedObject.CompareTag("Other"))
+                    else if (selectedObject.CompareTag("Other") || selectedObject.CompareTag("Chandelier"))
                     {
                         if (hit.collider.CompareTag("Structure") || hit.collider.CompareTag("Floor"))
                         {
-                            targetPosition = new Vector3(hit.point.x, hit.point.y, hit.point.z);
+                            if(selectedObject.CompareTag("Other"))
+                            {
+                                targetPosition = new Vector3(hit.point.x, hit.point.y, hit.point.z);
+                            }
+                          
+                            else if(selectedObject.CompareTag("Chandelier"))
+                            {
+                                targetPosition = new Vector3(hit.point.x, currentlySelectedObject.transform.position.y, hit.point.z);
+                            }
                         }
                     }
                     else if (selectedObject.CompareTag("GeneratedMesh"))
@@ -342,16 +358,36 @@ public class MeshSelectorAndMover : MonoBehaviour
                     {
                         if (hit.collider.CompareTag("Floor"))
                         {
-                            targetPosition = new Vector3(hit.point.x, selectedObject.position.y, hit.point.z);
+                            if(FreezeStructureManager.Instance.isMovable)
+                            {
+                                targetPosition = new Vector3(hit.point.x, selectedObject.position.y, hit.point.z);
+                            }
+
+                            else
+                            {
+                                Debug.Log("Could not move the object because Other layers are isolated!");
+                            }
                         }
                     }
                     else if (selectedObject.CompareTag("Other"))
                     {
                         if (hit.collider.CompareTag("Structure") || hit.collider.CompareTag("Floor"))
                         {
+                          
                             targetPosition = new Vector3(hit.point.x, hit.point.y, hit.point.z);
                         }
                     }
+
+
+                    else if(selectedObject.CompareTag("Chandelier"))
+                    {
+                        if (hit.collider.CompareTag("Structure") || hit.collider.CompareTag("Floor"))
+                        {
+
+                            targetPosition = new Vector3(hit.point.x, selectedObject.position.y, hit.point.z);
+                        }
+                    }
+
                     else
                     {
                         Vector3 position = ray.GetPoint(10);
@@ -374,7 +410,7 @@ public class MeshSelectorAndMover : MonoBehaviour
         RaycastHit hit;
 
         if (Physics.Raycast(ray, out hit) &&
-            (hit.collider.CompareTag("GeneratedMesh") || hit.collider.CompareTag("Other") || hit.collider.CompareTag("Structure")))
+            (hit.collider.CompareTag("GeneratedMesh") || hit.collider.CompareTag("Other") || hit.collider.CompareTag("Chandelier") || hit.collider.CompareTag("Structure")))
         {
             selectedObject = hit.transform;
             isMoving = true;
@@ -408,7 +444,7 @@ public class MeshSelectorAndMover : MonoBehaviour
         // Display properties
         if (hit.collider.CompareTag("Floor"))
             propertiesDisplayerScript.DisplayTargetProperties("Floor");
-        else if (hit.collider.CompareTag("Other"))
+        else if (hit.collider.CompareTag("Other") || hit.collider.CompareTag("Chandelier"))
             propertiesDisplayerScript.DisplayTargetProperties("Furniture");
         else if (hit.collider.CompareTag("GeneratedMesh"))
             propertiesDisplayerScript.DisplayTargetProperties("CustomShape");

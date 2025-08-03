@@ -278,7 +278,7 @@ GameObject:
   - component: {fileID: 278649674040308903}
   m_Layer: 0
   m_Name: LOD Chandelier 1
-  m_TagString: Other
+  m_TagString: Chandelier
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
