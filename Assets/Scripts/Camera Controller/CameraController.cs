@@ -163,6 +163,9 @@ public class CameraController : MonoBehaviour
     // ===== Mouse Zoom (Editor/WebGL) =====
     private void HandleMouseScroll()
     {
+        // Prevent zooming while adjusting measurement points
+        if (MeasurementTool.IsPlacingPoints) return;
+
         if (myCamera != null && myCamera.orthographic)
         {
             float scrollInput = Input.GetAxis("Mouse ScrollWheel");
@@ -177,7 +180,8 @@ public class CameraController : MonoBehaviour
     // ===== Mouse Pan (Editor/WebGL) =====
     private void OnMouseDown()
     {
-        if (MeasurementTool.IsPlacingPoints) return; // Restrict panning only while placing points
+        // Prevent starting pan while adjusting measurement points
+        if (MeasurementTool.IsPlacingPoints) return;
 
         Ray ray = myCamera.ScreenPointToRay(Input.mousePosition);
         RaycastHit hit;
@@ -200,7 +204,9 @@ public class CameraController : MonoBehaviour
 
     private void HandleCameraPan()
     {
-        if (MeasurementTool.IsPlacingPoints) return; // Restrict panning only while placing points
+        // Prevent panning while adjusting measurement points
+        if (MeasurementTool.IsPlacingPoints) return;
+
         if (myCamera != null && myCamera.orthographic && isPanning)
         {
             Ray ray = myCamera.ScreenPointToRay(Input.mousePosition);
@@ -229,6 +235,8 @@ public class CameraController : MonoBehaviour
     // ===== Android Pinch Zoom =====
     private void HandleTouchZoom()
     {
+        // Prevent zooming while adjusting measurement points
+        if (MeasurementTool.IsPlacingPoints) return;
         if (myCamera == null || !myCamera.orthographic) return;
 
         if (Input.touchCount == 2)
@@ -260,7 +268,8 @@ public class CameraController : MonoBehaviour
     // ===== Android Single Finger Pan =====
     private void HandleTouchPan()
     {
-        if (MeasurementTool.IsPlacingPoints) return; // Restrict panning only while placing points
+        // Prevent panning while adjusting measurement points
+        if (MeasurementTool.IsPlacingPoints) return;
         if (myCamera == null || !myCamera.orthographic) return;
 
         if (Input.touchCount == 1 && !isPinching)

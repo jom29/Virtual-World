@@ -32,6 +32,9 @@ public class MeasurementTool : MonoBehaviour
     public static bool IsPlacingPoints { get; private set; }
     private bool isLocked = false;
 
+    private int draggingPointIndex = -1; // -1 = none, 0 = A, 1 = B
+    [SerializeField] private float dragThreshold = 0.5f; // world units for proximity check
+
     void Awake()
     {
         lineRenderer = GetComponent<LineRenderer>();
@@ -60,7 +63,7 @@ public class MeasurementTool : MonoBehaviour
         if (!toolActive) return;
         if (mainCamera == null || !mainCamera.orthographic) return;
 
-        // If locked, allow panning/zoom but ignore measurement interactions
+        // If locked, do nothing
         if (isLocked) return;
 
         Vector3 worldPos = GetWorldPoint();
@@ -69,69 +72,75 @@ public class MeasurementTool : MonoBehaviour
         {
             case MeasureState.Idle:
                 IsPlacingPoints = false;
-                if (Input.GetMouseButtonDown(0))
+                if (Input.GetMouseButtonDown(0) && !IsPointerOverUI())
                 {
-                    if (IsPointerOverUI()) break;
-
                     points[0] = worldPos;
                     ShowMarkerA();
                     state = MeasureState.PlacingA;
+                    IsPlacingPoints = true; // prevent camera panning
                 }
                 break;
 
             case MeasureState.PlacingA:
-                IsPlacingPoints = true;
-                if (Input.GetMouseButton(0))
+                if (Input.GetMouseButton(0) && !IsPointerOverUI())
                 {
-                    if (IsPointerOverUI()) break;
-
-                    // Dragging Point A
+                    // Dragging Point A while placing
                     points[0] = worldPos;
                     UpdateMarkerPosition(markerA, points[0]);
                 }
                 if (Input.GetMouseButtonUp(0))
                 {
                     state = MeasureState.PlacingB;
+                    IsPlacingPoints = false; // allow camera panning again
                 }
                 break;
 
             case MeasureState.PlacingB:
-                IsPlacingPoints = true;
-                if (Input.GetMouseButtonDown(0))
+                if (Input.GetMouseButtonDown(0) && !IsPointerOverUI())
                 {
-                    if (IsPointerOverUI()) break;
-
                     points[1] = worldPos;
                     ShowMarkerB();
                     state = MeasureState.Complete;
                     lineRenderer.positionCount = 2;
+                    DrawLine();
+                    UpdateDistanceText();
                 }
                 break;
 
             case MeasureState.Complete:
-                IsPlacingPoints = false;
-
-                // Dragging Point B to adjust line after complete
-                if (Input.GetMouseButton(0))
+                // Detect start drag near point A or B
+                if (Input.GetMouseButtonDown(0) && !IsPointerOverUI())
                 {
-                    if (IsPointerOverUI()) break;
+                    if (Vector3.Distance(worldPos, points[0]) < dragThreshold)
+                    {
+                        draggingPointIndex = 0;
+                        IsPlacingPoints = true; // lock camera panning
+                    }
+                    else if (Vector3.Distance(worldPos, points[1]) < dragThreshold)
+                    {
+                        draggingPointIndex = 1;
+                        IsPlacingPoints = true; // lock camera panning
+                    }
+                }
 
-                    points[1] = worldPos;
-                    UpdateMarkerPosition(markerB, points[1]);
+                // Dragging selected point
+                if (Input.GetMouseButton(0) && draggingPointIndex != -1)
+                {
+                    points[draggingPointIndex] = worldPos;
+                    if (draggingPointIndex == 0) UpdateMarkerPosition(markerA, points[0]);
+                    else UpdateMarkerPosition(markerB, points[1]);
+
                     DrawLine();
                     UpdateDistanceText();
                 }
 
-                // Single click resets and starts fresh
-                if (Input.GetMouseButtonDown(0))
+                // Release drag
+                if (Input.GetMouseButtonUp(0))
                 {
-                    if (IsPointerOverUI()) break;
-
-                    ResetMeasurement();
-                    points[0] = worldPos;
-                    ShowMarkerA();
-                    state = MeasureState.PlacingA;
+                    draggingPointIndex = -1;
+                    IsPlacingPoints = false; // allow camera panning again
                 }
+
                 break;
         }
     }
