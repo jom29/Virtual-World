@@ -89,7 +89,6 @@ public class CameraController : MonoBehaviour
         }
     }
 
-
     public void OnToggleView()
     {
         if (!cameraToggle)
@@ -178,6 +177,8 @@ public class CameraController : MonoBehaviour
     // ===== Mouse Pan (Editor/WebGL) =====
     private void OnMouseDown()
     {
+        if (MeasurementTool.IsPlacingPoints) return; // Restrict panning only while placing points
+
         Ray ray = myCamera.ScreenPointToRay(Input.mousePosition);
         RaycastHit hit;
 
@@ -199,6 +200,7 @@ public class CameraController : MonoBehaviour
 
     private void HandleCameraPan()
     {
+        if (MeasurementTool.IsPlacingPoints) return; // Restrict panning only while placing points
         if (myCamera != null && myCamera.orthographic && isPanning)
         {
             Ray ray = myCamera.ScreenPointToRay(Input.mousePosition);
@@ -258,7 +260,9 @@ public class CameraController : MonoBehaviour
     // ===== Android Single Finger Pan =====
     private void HandleTouchPan()
     {
+        if (MeasurementTool.IsPlacingPoints) return; // Restrict panning only while placing points
         if (myCamera == null || !myCamera.orthographic) return;
+
         if (Input.touchCount == 1 && !isPinching)
         {
             Touch touch = Input.GetTouch(0);
