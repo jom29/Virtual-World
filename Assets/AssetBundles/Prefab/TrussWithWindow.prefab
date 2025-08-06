@@ -12,7 +12,7 @@ GameObject:
   - component: {fileID: 4057921996568559993}
   - component: {fileID: 4076106427528771204}
   - component: {fileID: 182379445590794422}
-  - component: {fileID: 3135582060689744762}
+  - component: {fileID: 5234583092985489693}
   m_Layer: 0
   m_Name: TrussWithWindow
   m_TagString: Structure
@@ -43,7 +43,7 @@ MeshFilter:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 3055657629768176076}
-  m_Mesh: {fileID: 7678460896270084736, guid: bcdb0391328bf0c49a54356fd5fcf3e5, type: 3}
+  m_Mesh: {fileID: 6375354406568116791, guid: 0be52626d9392814ca29b9dc9f3b1d90, type: 3}
 --- !u!23 &4076106427528771204
 MeshRenderer:
   m_ObjectHideFlags: 0
@@ -66,10 +66,9 @@ MeshRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 2100000, guid: 5dc0d5a60116bb744b71d2a40ec41b46, type: 2}
-  - {fileID: 2100000, guid: 8e71e01dc2783f84cacd534d76a0afba, type: 2}
-  - {fileID: 2100000, guid: ee0fa8b8c36603b449857ee21ada4ff7, type: 2}
-  - {fileID: 2100000, guid: 48eee74495f460f4d91b806b45645988, type: 2}
+  - {fileID: 2100000, guid: 7d248022aa1ca534799f0d65203e9f3d, type: 2}
+  - {fileID: 2100000, guid: 5bf30510ccc8b3d4aa5a8f3914502357, type: 2}
+  - {fileID: 2100000, guid: a0535c700c3e1d344adc082858339585, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -104,7 +103,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   id: TrussWithWindow
---- !u!64 &3135582060689744762
+--- !u!64 &5234583092985489693
 MeshCollider:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -125,7 +124,7 @@ MeshCollider:
   serializedVersion: 5
   m_Convex: 0
   m_CookingOptions: 30
-  m_Mesh: {fileID: 7678460896270084736, guid: bcdb0391328bf0c49a54356fd5fcf3e5, type: 3}
+  m_Mesh: {fileID: 6375354406568116791, guid: afb6ec71ff27ac94687d9d0124f5e398, type: 3}
 --- !u!1 &8237558031620463982
 GameObject:
   m_ObjectHideFlags: 0

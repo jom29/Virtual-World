@@ -11,11 +11,11 @@ GameObject:
   - component: {fileID: 6485595479645375898}
   - component: {fileID: 7261098520107419896}
   - component: {fileID: 4862507331974387151}
-  - component: {fileID: 2360258826482665421}
   - component: {fileID: 6475966282117630300}
+  - component: {fileID: 6778640275702712723}
   m_Layer: 0
   m_Name: SingleTruss
-  m_TagString: Structure
+  m_TagString: Other
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -42,7 +42,7 @@ MeshFilter:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 8652438314944537184}
-  m_Mesh: {fileID: 5442152136068178900, guid: 25ff5919425937143a29fe9d741f7c5f, type: 3}
+  m_Mesh: {fileID: 5442152136068178900, guid: 4eabd32f5782feb43acd86890c15e468, type: 3}
 --- !u!23 &4862507331974387151
 MeshRenderer:
   m_ObjectHideFlags: 0
@@ -87,7 +87,20 @@ MeshRenderer:
   m_SortingLayer: 0
   m_SortingOrder: 0
   m_AdditionalVertexStreams: {fileID: 0}
---- !u!64 &2360258826482665421
+--- !u!114 &6475966282117630300
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8652438314944537184}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 20bce000b96829944acb275f9f32ec4c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  id: SingleTruss
+--- !u!64 &6778640275702712723
 MeshCollider:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -108,17 +121,4 @@ MeshCollider:
   serializedVersion: 5
   m_Convex: 0
   m_CookingOptions: 30
-  m_Mesh: {fileID: 5442152136068178900, guid: 25ff5919425937143a29fe9d741f7c5f, type: 3}
---- !u!114 &6475966282117630300
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 8652438314944537184}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 20bce000b96829944acb275f9f32ec4c, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  id: SingleTruss
+  m_Mesh: {fileID: 5442152136068178900, guid: 4eabd32f5782feb43acd86890c15e468, type: 3}
