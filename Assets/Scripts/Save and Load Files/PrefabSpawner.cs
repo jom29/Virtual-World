@@ -18,23 +18,8 @@ public class PrefabSpawner : MonoBehaviour
     public int indexNameTracker;
     public event Action onPrefabChangeEvent;
 
-    [Foldout("Default Furniture Properties")]
-    public InputField defaultRotationY_Input;
-    [Foldout("Default Furniture Properties")]
-    public InputField defaultYAxis_Input;
     public MeshSelectorAndMover moverScript;
 
-
-    [Foldout("Default Furniture Properties")]
-    public float defaultYRot;
-    [Foldout("Default Furniture Properties")]
-    public float defaultYAxis;
-
-    private void Start()
-    {
-        defaultRotationY_Input.text = 0.ToString();
-        defaultYAxis_Input.text = 0.ToString();
-    }
     void Update()
     {
         // -------- PC / Editor (mouse click) --------
@@ -99,15 +84,16 @@ public class PrefabSpawner : MonoBehaviour
 
     private void SpawnPrefabAtPoint(Vector3 hitPoint)
     {
-        // Convert default rotation and Y axis from input fields
-        defaultYRot = float.Parse(defaultRotationY_Input.text);
-        defaultYAxis = float.Parse(defaultYAxis_Input.text);
+        Vector3 myHitPoint = new Vector3(hitPoint.x, ObjectPropertiesHandler.Instance.targetPosition.y, hitPoint.z);
 
-        Vector3 myHitPoint = new Vector3(hitPoint.x, defaultYAxis, hitPoint.z);
-        Quaternion myQuaternion = Quaternion.Euler(0f, defaultYRot, 0f);
+        Vector3 myRotation = ObjectPropertiesHandler.Instance.targetRotation;
+
+        Quaternion myQuaternion = Quaternion.Euler(myRotation.x, myRotation.y, myRotation.z);
 
         // Instantiate prefab at hit point
         GameObject spawnedObject = Instantiate(prefab, myHitPoint, myQuaternion);
+        //overwrite scale
+        spawnedObject.transform.localScale = ObjectPropertiesHandler.Instance.targetScale;
 
         // Naming & tracking
         indexNameTracker++;
@@ -146,6 +132,7 @@ public class PrefabSpawner : MonoBehaviour
             instantiateTxt_InTopView.text = "INSTANTIATE: " + (instantiate ? "ON" : "OFF");
             instantiateTxt_InTopView.color = instantiate ? Color.yellow : Color.white;
         }
+
     }
 
     public Text instantiateText_InFurnitureTab;
@@ -158,6 +145,8 @@ public class PrefabSpawner : MonoBehaviour
         {
             instantiateText_InFurnitureTab.text = "INSTANTIATE: " + (instantiate ? "ON" : "OFF");
             instantiateTxt.color = instantiate ? Color.yellow : Color.white;
+
+            ObjectPropertiesHandler.Instance.panel.SetActive(instantiate);
         }
     }
 

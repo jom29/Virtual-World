@@ -11,6 +11,7 @@ TagManager:
   - Savable
   - Structure
   - Chandelier
+  - FreezeObject
   layers:
   - Default
   - TransparentFX

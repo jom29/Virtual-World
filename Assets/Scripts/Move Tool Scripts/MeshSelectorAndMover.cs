@@ -343,7 +343,7 @@ public class MeshSelectorAndMover : MonoBehaviour
                             }
                         }
                     }
-                    else if (selectedObject.CompareTag("Other") || selectedObject.CompareTag("Chandelier"))
+                    else if (selectedObject.CompareTag("Other") || selectedObject.CompareTag("Chandelier") || selectedObject.CompareTag("FreezeObject"))
                     {
                         if (hit.collider.CompareTag("Structure") || hit.collider.CompareTag("Floor"))
                         {
@@ -355,6 +355,11 @@ public class MeshSelectorAndMover : MonoBehaviour
                             else if(selectedObject.CompareTag("Chandelier"))
                             {
                                 targetPosition = new Vector3(hit.point.x, currentlySelectedObject.transform.position.y, hit.point.z);
+                            }
+
+                            else if(selectedObject.CompareTag("FreezeObject"))
+                            {
+                                    targetPosition = new Vector3(hit.point.x, ObjectPropertiesHandler.Instance.targetPosition.y, hit.point.z);
                             }
                         }
                     }
@@ -409,6 +414,16 @@ public class MeshSelectorAndMover : MonoBehaviour
                         }
                     }
 
+
+                    else if(selectedObject.CompareTag("FreezeObject"))
+                    {
+                            if (hit.collider.CompareTag("Structure") || hit.collider.CompareTag("Floor"))
+                            {
+
+                                targetPosition = new Vector3(hit.point.x, ObjectPropertiesHandler.Instance.targetPosition.y, hit.point.z);
+                            }
+                    }
+
                     else
                     {
                         Vector3 position = ray.GetPoint(10);
@@ -431,7 +446,7 @@ public class MeshSelectorAndMover : MonoBehaviour
         RaycastHit hit;
 
         if (Physics.Raycast(ray, out hit) &&
-            (hit.collider.CompareTag("GeneratedMesh") || hit.collider.CompareTag("Other") || hit.collider.CompareTag("Chandelier") || hit.collider.CompareTag("Structure")))
+            (hit.collider.CompareTag("GeneratedMesh") || hit.collider.CompareTag("Other") || hit.collider.CompareTag("Chandelier") || hit.collider.CompareTag("FreezeObject") || hit.collider.CompareTag("Structure")))
         {
             selectedObject = hit.transform;
             isMoving = true;
@@ -440,6 +455,8 @@ public class MeshSelectorAndMover : MonoBehaviour
             // Store original layer and move to IgnoreRaycast
             originalLayer = selectedObject.gameObject.layer;
             selectedObject.gameObject.layer = LayerMask.NameToLayer("Ignore Raycast");
+
+          
 
             // Handle multiple vs single selection
             if (!multipleSelectionScript.isMultipleSelection)
@@ -465,7 +482,7 @@ public class MeshSelectorAndMover : MonoBehaviour
         // Display properties
         if (hit.collider.CompareTag("Floor"))
             propertiesDisplayerScript.DisplayTargetProperties("Floor");
-        else if (hit.collider.CompareTag("Other") || hit.collider.CompareTag("Chandelier"))
+        else if (hit.collider.CompareTag("Other") || hit.collider.CompareTag("Chandelier") || hit.collider.CompareTag("FreezeObject"))
             propertiesDisplayerScript.DisplayTargetProperties("Furniture");
         else if (hit.collider.CompareTag("GeneratedMesh"))
             propertiesDisplayerScript.DisplayTargetProperties("CustomShape");

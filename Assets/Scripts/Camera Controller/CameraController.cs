@@ -4,6 +4,7 @@ using UnityEngine;
 using NaughtyAttributes;
 using UnityEngine.UI;
 using System;
+using UnityEngine.EventSystems; // <-- Required for UI detection
 using ProBuilder.Examples;
 
 public class CameraController : MonoBehaviour
@@ -17,7 +18,6 @@ public class CameraController : MonoBehaviour
     public DrawAndExtrudePolygon drawMesh;
 
     [Space]
-
     [Header("Toggle")]
     public Button CameraBtn;
     public bool cameraToggle;
@@ -63,13 +63,15 @@ public class CameraController : MonoBehaviour
 
     private void Update()
     {
-        // Detect if running WebGL mobile (browser on phone/tablet)
+        // Skip camera control when pointer is over UI
+        if (IsPointerOverUI())
+            return;
+
         bool isWebGLMobile = Application.platform == RuntimePlatform.WebGLPlayer && Application.isMobilePlatform;
 
         // --- Desktop WebGL & Editor ---
         if (!isWebGLMobile && (Application.platform == RuntimePlatform.WebGLPlayer || Application.isEditor))
         {
-            // Mouse scroll zoom and panning
             HandleMouseScroll();
 
             if (Input.GetMouseButtonDown(0))
@@ -110,15 +112,11 @@ public class CameraController : MonoBehaviour
     [Button]
     public void TopView_Setup()
     {
-        for (int i = 0; i < hideObjects.Length; i++)
-        {
-            hideObjects[i].SetActive(false);
-        }
+        foreach (var obj in hideObjects)
+            obj.SetActive(false);
 
         if (myCeiling != null)
-        {
             myCeiling.SetActive(false);
-        }
 
         FPSController.enabled = false;
         cameraLastRotation = myCamera.transform.localRotation;
@@ -138,17 +136,13 @@ public class CameraController : MonoBehaviour
     [Button]
     public void FPS_Setup()
     {
-        for (int i = 0; i < hideObjects.Length; i++)
-        {
-            hideObjects[i].SetActive(true);
-        }
+        foreach (var obj in hideObjects)
+            obj.SetActive(true);
 
         FPSController.enabled = true;
 
         if (myCeiling != null)
-        {
             myCeiling.SetActive(true);
-        }
 
         myCamera.transform.parent = FPSView_CameraRig.transform;
         myCamera.transform.localPosition = new Vector3(0, 0.85f, 0);
@@ -163,7 +157,6 @@ public class CameraController : MonoBehaviour
     // ===== Mouse Zoom (Editor/WebGL) =====
     private void HandleMouseScroll()
     {
-        // Prevent zooming while adjusting measurement points
         if (MeasurementTool.IsPlacingPoints) return;
 
         if (myCamera != null && myCamera.orthographic)
@@ -180,7 +173,6 @@ public class CameraController : MonoBehaviour
     // ===== Mouse Pan (Editor/WebGL) =====
     private void OnMouseDown()
     {
-        // Prevent starting pan while adjusting measurement points
         if (MeasurementTool.IsPlacingPoints) return;
 
         Ray ray = myCamera.ScreenPointToRay(Input.mousePosition);
@@ -204,7 +196,6 @@ public class CameraController : MonoBehaviour
 
     private void HandleCameraPan()
     {
-        // Prevent panning while adjusting measurement points
         if (MeasurementTool.IsPlacingPoints) return;
 
         if (myCamera != null && myCamera.orthographic && isPanning)
@@ -235,7 +226,6 @@ public class CameraController : MonoBehaviour
     // ===== Android Pinch Zoom =====
     private void HandleTouchZoom()
     {
-        // Prevent zooming while adjusting measurement points
         if (MeasurementTool.IsPlacingPoints) return;
         if (myCamera == null || !myCamera.orthographic) return;
 
@@ -268,7 +258,6 @@ public class CameraController : MonoBehaviour
     // ===== Android Single Finger Pan =====
     private void HandleTouchPan()
     {
-        // Prevent panning while adjusting measurement points
         if (MeasurementTool.IsPlacingPoints) return;
         if (myCamera == null || !myCamera.orthographic) return;
 
@@ -313,5 +302,19 @@ public class CameraController : MonoBehaviour
                 isPanning = false;
             }
         }
+    }
+
+    // ===== Detect if pointer is over UI (mouse or touch) =====
+    private bool IsPointerOverUI()
+    {
+#if UNITY_ANDROID || UNITY_IOS
+        if (Input.touchCount > 0)
+        {
+            return EventSystem.current != null && EventSystem.current.IsPointerOverGameObject(Input.GetTouch(0).fingerId);
+        }
+        return false;
+#else
+        return EventSystem.current != null && EventSystem.current.IsPointerOverGameObject();
+#endif
     }
 }
