@@ -12,7 +12,7 @@ public class MeshSelectorAndMover : MonoBehaviour
     public PrefabSpawner prefabSpawnerScript;
     public UpdateTextInstantiate updateTxtInstantiate;
     private Camera mainCamera;
-    private Transform selectedObject;
+    public Transform selectedObject;
     private Vector3 targetPosition;
     public float smoothSpeed = 15f;
     public bool isMoving = false;
