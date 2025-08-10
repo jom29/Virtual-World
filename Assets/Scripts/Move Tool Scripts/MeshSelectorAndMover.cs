@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System;
 using TMPro;
 using NaughtyAttributes;
+using System.Drawing;
 
 public class MeshSelectorAndMover : MonoBehaviour
 {
@@ -40,6 +41,10 @@ public class MeshSelectorAndMover : MonoBehaviour
     public TextMeshProUGUI YAxisTMPPro;
     [Foldout("Height Adjust")]
     public InputField HeightInputValue;
+
+    private Vector3 clickOffset;
+
+
 
     public void IncreaseHeight()
     {
@@ -320,46 +325,87 @@ public class MeshSelectorAndMover : MonoBehaviour
         Ray ray = mainCamera.ScreenPointToRay(Input.mousePosition);
         RaycastHit hit;
 
-       if(!isSelectOnlyMode)
+        int ignoreLayer = LayerMask.NameToLayer("Ignore Raycast");
+        int layerMask = ~(1 << ignoreLayer);
 
-        if (!mainCamera.orthographic)
+        if (!isSelectOnlyMode)
         {
-            if (Physics.Raycast(ray, out hit))
+            if (Physics.Raycast(ray, out hit, Mathf.Infinity, layerMask))
             {
                 if (selectedObject != null)
                 {
+                    // Ignore same-tag and "Other" unless Floor or Structure
+                    if ((hit.collider.CompareTag(selectedObject.tag) || hit.collider.CompareTag("Other")) &&
+                        !hit.collider.CompareTag("Floor") &&
+                        !hit.collider.CompareTag("Structure"))
+                    {
+                        Vector3 newOrigin = hit.point + ray.direction * 0.01f;
+                        if (Physics.Raycast(newOrigin, ray.direction, out RaycastHit secondHit, Mathf.Infinity, layerMask))
+                        {
+                            hit = secondHit;
+                        }
+                        else
+                        {
+                            return;
+                        }
+                    }
+
+                    // --- MOVEMENT LOGIC ---
                     if (selectedObject.CompareTag("Structure"))
                     {
                         if (hit.collider.CompareTag("Floor"))
                         {
-                            if(FreezeStructureManager.Instance.isMovable)
+                            if (FreezeStructureManager.Instance.isMovable)
                             {
-                                targetPosition = new Vector3(hit.point.x, selectedObject.position.y, hit.point.z);
+                                targetPosition = new Vector3(
+                                    hit.point.x - clickOffset.x,
+                                    selectedObject.position.y,
+                                    hit.point.z - clickOffset.z
+                                );
                             }
-                           
                             else
                             {
                                 Debug.Log("Could not move the object because Other layers are isolated!");
                             }
                         }
                     }
-                    else if (selectedObject.CompareTag("Other") || selectedObject.CompareTag("Chandelier") || selectedObject.CompareTag("FreezeObject"))
+                    else if (selectedObject.CompareTag("Other") ||
+                             selectedObject.CompareTag("Chandelier") ||
+                             selectedObject.CompareTag("FreezeObject"))
                     {
                         if (hit.collider.CompareTag("Structure") || hit.collider.CompareTag("Floor"))
                         {
-                            if(selectedObject.CompareTag("Other"))
+                            if (selectedObject.CompareTag("Other"))
                             {
-                                targetPosition = new Vector3(hit.point.x, hit.point.y, hit.point.z);
-                            }
-                          
-                            else if(selectedObject.CompareTag("Chandelier"))
-                            {
-                                targetPosition = new Vector3(hit.point.x, currentlySelectedObject.transform.position.y, hit.point.z);
-                            }
+                                float targetY = selectedObject.position.y;
 
-                            else if(selectedObject.CompareTag("FreezeObject"))
+                                // If we're over a Structure, set Y to top surface
+                                if (hit.collider.CompareTag("Structure") || hit.collider.CompareTag("Floor"))
+                                {
+                                    targetY = hit.collider.bounds.max.y;
+                                }
+
+                                targetPosition = new Vector3(
+                                    hit.point.x - clickOffset.x,
+                                    targetY,
+                                    hit.point.z - clickOffset.z
+                                );
+                            }
+                            else if (selectedObject.CompareTag("Chandelier"))
                             {
-                                    targetPosition = new Vector3(hit.point.x, ObjectPropertiesHandler.Instance.targetPosition.y, hit.point.z);
+                                targetPosition = new Vector3(
+                                    hit.point.x - clickOffset.x,
+                                    currentlySelectedObject.transform.position.y,
+                                    hit.point.z - clickOffset.z
+                                );
+                            }
+                            else if (selectedObject.CompareTag("FreezeObject"))
+                            {
+                                    targetPosition = new Vector3(
+                                    hit.point.x - clickOffset.x,
+                                    currentlySelectedObject.transform.position.y,
+                                    hit.point.z - clickOffset.z
+                              );
                             }
                         }
                     }
@@ -367,77 +413,21 @@ public class MeshSelectorAndMover : MonoBehaviour
                     {
                         if (hit.collider.CompareTag("Floor"))
                         {
-                            targetPosition = new Vector3(hit.point.x, selectedObject.position.y, hit.point.z);
+                            targetPosition = new Vector3(
+                                hit.point.x - clickOffset.x,
+                                selectedObject.position.y,
+                                hit.point.z - clickOffset.z
+                            );
                         }
                     }
                 }
-            }
-        }
-        else
-        {
-            // Orthographic mode — fallback logic included
-            if (Physics.Raycast(ray, out hit))
-            {
-                if (selectedObject != null)
-                {
-                    if (selectedObject.CompareTag("Structure"))
-                    {
-                        if (hit.collider.CompareTag("Floor"))
-                        {
-                            if(FreezeStructureManager.Instance.isMovable)
-                            {
-                                targetPosition = new Vector3(hit.point.x, selectedObject.position.y, hit.point.z);
-                            }
-
-                            else
-                            {
-                                Debug.Log("Could not move the object because Other layers are isolated!");
-                            }
-                        }
-                    }
-                    else if (selectedObject.CompareTag("Other"))
-                    {
-                        if (hit.collider.CompareTag("Structure") || hit.collider.CompareTag("Floor"))
-                        {
-                          
-                            targetPosition = new Vector3(hit.point.x, hit.point.y, hit.point.z);
-                        }
-                    }
-
-
-                    else if(selectedObject.CompareTag("Chandelier"))
-                    {
-                        if (hit.collider.CompareTag("Structure") || hit.collider.CompareTag("Floor"))
-                        {
-
-                            targetPosition = new Vector3(hit.point.x, selectedObject.position.y, hit.point.z);
-                        }
-                    }
-
-
-                    else if(selectedObject.CompareTag("FreezeObject"))
-                    {
-                            if (hit.collider.CompareTag("Structure") || hit.collider.CompareTag("Floor"))
-                            {
-
-                                targetPosition = new Vector3(hit.point.x, ObjectPropertiesHandler.Instance.targetPosition.y, hit.point.z);
-                            }
-                    }
-
-                    else
-                    {
-                        Vector3 position = ray.GetPoint(10);
-                        targetPosition = new Vector3(position.x, selectedObject.position.y, position.z);
-                    }
-                }
-            }
-            else
-            {
-                Vector3 position = ray.GetPoint(10);
-                targetPosition = new Vector3(position.x, selectedObject.position.y, position.z);
             }
         }
     }
+
+
+
+
 
     // -------------------- Selection --------------------
     private void SelectMeshObject()
@@ -451,6 +441,44 @@ public class MeshSelectorAndMover : MonoBehaviour
             selectedObject = hit.transform;
             isMoving = true;
             targetPosition = selectedObject.position;
+
+
+            // NEW: store the offset between object position and hit point
+            clickOffset = hit.point - selectedObject.position;
+            // NEW: store offset but ignore Y-axis
+            Vector3 offset = hit.point - selectedObject.position;
+
+
+            if(hit.collider.tag == "Other")
+            {
+                offset.y = hit.point.y;
+            }
+
+            else if(hit.collider.tag == "FreezeObject" || hit.collider.tag == "Chandelier")
+            {
+                offset.y = selectedObject.position.y;
+            }
+
+            else if(selectedObject.CompareTag("other") && hit.collider.CompareTag("Structure"))
+            {
+                offset.y = 0;
+            }
+
+
+           
+            clickOffset = offset;
+
+
+            // Store original layer and move to IgnoreRaycast
+            originalLayer = selectedObject.gameObject.layer;
+            selectedObject.gameObject.layer = LayerMask.NameToLayer("Ignore Raycast");
+
+            // Handle multiple vs single selection
+            if (!multipleSelectionScript.isMultipleSelection)
+            {
+                currentlySelectedObject = hit.transform.gameObject;
+                currentHighlight.transform.position = hit.transform.position;
+            }
 
             // Store original layer and move to IgnoreRaycast
             originalLayer = selectedObject.gameObject.layer;
@@ -496,10 +524,10 @@ public class MeshSelectorAndMover : MonoBehaviour
     {
         isMoving = false;
 
-        // Restore original layer
+        // Always reset to Default layer
         if (selectedObject != null)
         {
-            selectedObject.gameObject.layer = originalLayer;
+            selectedObject.gameObject.layer = LayerMask.NameToLayer("Default");
         }
     }
 

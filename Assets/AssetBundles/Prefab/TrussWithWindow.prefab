@@ -15,7 +15,7 @@ GameObject:
   - component: {fileID: 4824198962775562507}
   m_Layer: 0
   m_Name: TrussWithWindow
-  m_TagString: Structure
+  m_TagString: Other
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0

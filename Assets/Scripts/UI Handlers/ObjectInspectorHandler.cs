@@ -6,6 +6,7 @@ using UnityEngine.UI;
 
 public class ObjectInspectorHandler : MonoBehaviour
 {
+    public static ObjectInspectorHandler Instance;
     public GameObject panel;
     public MeshSelectorAndMover moverScript;
 
@@ -31,6 +32,12 @@ public class ObjectInspectorHandler : MonoBehaviour
     public InputField scale_x;
     public InputField scale_y;
     public InputField scale_z;
+
+
+    private void Awake()
+    {
+        Instance = this;
+    }
 
     [Button]
     public void ShowProperties()
