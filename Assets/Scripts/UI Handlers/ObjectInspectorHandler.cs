@@ -44,7 +44,17 @@ public class ObjectInspectorHandler : MonoBehaviour
     {
         if (moverScript != null && moverScript.currentlySelectedObject != null)
         {
-            panel.SetActive(true);
+            if(!panel.activeInHierarchy)
+            {
+                panel.SetActive(true);
+                Debug.Log("Show Up");
+            }
+
+            else
+            {
+                Debug.Log("Refresh Only!");
+            }
+           
 
             // Store values
             Position = moverScript.currentlySelectedObject.transform.position;
