@@ -136,21 +136,32 @@ public class SceneDataHandler : MonoBehaviour
         string json = JsonUtility.ToJson(data, true);
 
 #if UNITY_WEBGL && !UNITY_EDITOR
-        // WebGL download
-        //DownloadFile("sceneData.json", json);
-        DownloadFile(fileName + ".json", json);
+    // WebGL download
+    DownloadFile(fileName + ".json", json);
+
 #elif UNITY_ANDROID && !UNITY_EDITOR
-        // Android: save to persistentDataPath
-        string path = Application.persistentDataPath + "/sceneData.json";
-        System.IO.File.WriteAllText(path, json);
-        Debug.Log("Saved JSON to Android: " + path);
+    // Android: save to persistentDataPath
+    string path = Application.persistentDataPath + "/sceneData.json";
+    System.IO.File.WriteAllText(path, json);
+    Debug.Log("Saved JSON to Android: " + path);
+
 #elif UNITY_EDITOR
-        // Editor fallback: save locally
-        string path = Application.persistentDataPath + "/"+fileName+".json";
+        // Editor: Save to Resources folder
+        string resourcesFolder = Application.dataPath + "/Resources";
+        if (!System.IO.Directory.Exists(resourcesFolder))
+        {
+            System.IO.Directory.CreateDirectory(resourcesFolder);
+        }
+
+        string path = resourcesFolder + "/" + fileName + ".json";
         System.IO.File.WriteAllText(path, json);
-        Debug.Log("Saved JSON to Editor: " + path);
+        Debug.Log("Saved JSON to Resources folder: " + path);
+
+        // Refresh the AssetDatabase so the new file appears in Unity
+        UnityEditor.AssetDatabase.Refresh();
 #endif
     }
+
 
     // ====================
     // LOAD
