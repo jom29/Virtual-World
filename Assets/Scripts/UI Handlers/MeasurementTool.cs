@@ -12,13 +12,15 @@ public class MeasurementTool : MonoBehaviour
     public float unitScale = 1f;
     [SerializeField] private float customY = 0f;
 
+    [Header("Marker Scaling")]
+    public float markerScaleFactor = 1f; // Adjust size appearance
+
     [Header("UI Reference")]
     public TextMeshProUGUI toggleButtonText;
-    public TextMeshProUGUI lockButtonText; // Optional: assign to show lock state
+    public TextMeshProUGUI lockButtonText;
 
     private LineRenderer lineRenderer;
     private Vector3[] points = new Vector3[2];
-
     private GameObject markerA;
     private GameObject markerB;
     private GameObject measurementLabel;
@@ -28,12 +30,14 @@ public class MeasurementTool : MonoBehaviour
 
     private bool toolActive = false;
     private bool lastCameraOrthoState;
+    private bool isLocked = false;
+    private int draggingPointIndex = -1;
+    [SerializeField] private float dragThreshold = 0.5f;
+
+    private float initialOrthoSize;
+    private Vector3 markerOriginalScale;
 
     public static bool IsPlacingPoints { get; private set; }
-    private bool isLocked = false;
-
-    private int draggingPointIndex = -1; // -1 = none, 0 = A, 1 = B
-    [SerializeField] private float dragThreshold = 0.5f; // world units for proximity check
 
     void Awake()
     {
@@ -41,7 +45,10 @@ public class MeasurementTool : MonoBehaviour
         lineRenderer.positionCount = 0;
 
         if (mainCamera != null)
+        {
             lastCameraOrthoState = mainCamera.orthographic;
+            initialOrthoSize = mainCamera.orthographicSize;
+        }
 
         UpdateButtonText();
         UpdateLockButtonText();
@@ -55,16 +62,14 @@ public class MeasurementTool : MonoBehaviour
             lastCameraOrthoState = mainCamera.orthographic;
 
             if (!mainCamera.orthographic)
-            {
                 ForceDisableTool();
-            }
         }
 
-        if (!toolActive) return;
-        if (mainCamera == null || !mainCamera.orthographic) return;
-
-        // If locked, do nothing
+        if (!toolActive || mainCamera == null || !mainCamera.orthographic) return;
         if (isLocked) return;
+
+        // Scale markers with camera zoom
+        UpdateMarkerScale();
 
         Vector3 worldPos = GetWorldPoint();
 
@@ -77,21 +82,20 @@ public class MeasurementTool : MonoBehaviour
                     points[0] = worldPos;
                     ShowMarkerA();
                     state = MeasureState.PlacingA;
-                    IsPlacingPoints = true; // prevent camera panning
+                    IsPlacingPoints = true;
                 }
                 break;
 
             case MeasureState.PlacingA:
                 if (Input.GetMouseButton(0) && !IsPointerOverUI())
                 {
-                    // Dragging Point A while placing
                     points[0] = worldPos;
                     UpdateMarkerPosition(markerA, points[0]);
                 }
                 if (Input.GetMouseButtonUp(0))
                 {
                     state = MeasureState.PlacingB;
-                    IsPlacingPoints = false; // allow camera panning again
+                    IsPlacingPoints = false;
                 }
                 break;
 
@@ -108,22 +112,20 @@ public class MeasurementTool : MonoBehaviour
                 break;
 
             case MeasureState.Complete:
-                // Detect start drag near point A or B
                 if (Input.GetMouseButtonDown(0) && !IsPointerOverUI())
                 {
                     if (Vector3.Distance(worldPos, points[0]) < dragThreshold)
                     {
                         draggingPointIndex = 0;
-                        IsPlacingPoints = true; // lock camera panning
+                        IsPlacingPoints = true;
                     }
                     else if (Vector3.Distance(worldPos, points[1]) < dragThreshold)
                     {
                         draggingPointIndex = 1;
-                        IsPlacingPoints = true; // lock camera panning
+                        IsPlacingPoints = true;
                     }
                 }
 
-                // Dragging selected point
                 if (Input.GetMouseButton(0) && draggingPointIndex != -1)
                 {
                     points[draggingPointIndex] = worldPos;
@@ -134,18 +136,24 @@ public class MeasurementTool : MonoBehaviour
                     UpdateDistanceText();
                 }
 
-                // Release drag
                 if (Input.GetMouseButtonUp(0))
                 {
                     draggingPointIndex = -1;
-                    IsPlacingPoints = false; // allow camera panning again
+                    IsPlacingPoints = false;
                 }
-
                 break;
         }
     }
 
-    // Toggle measurement tool ON/OFF
+    private void UpdateMarkerScale()
+    {
+        if (markerA != null)
+            markerA.transform.localScale = markerOriginalScale * (mainCamera.orthographicSize / initialOrthoSize) * markerScaleFactor;
+
+        if (markerB != null)
+            markerB.transform.localScale = markerOriginalScale * (mainCamera.orthographicSize / initialOrthoSize) * markerScaleFactor;
+    }
+
     public void ToggleMeasurementTool()
     {
         toolActive = !toolActive;
@@ -154,14 +162,13 @@ public class MeasurementTool : MonoBehaviour
         if (!toolActive)
         {
             ResetMeasurement();
-            isLocked = false; // Unlock when disabling
+            isLocked = false;
         }
 
         UpdateButtonText();
         UpdateLockButtonText();
     }
 
-    // Toggle lock state (freeze/unfreeze current measurement)
     public void ToggleLockMeasurement()
     {
         if (state == MeasureState.Complete)
@@ -175,10 +182,8 @@ public class MeasurementTool : MonoBehaviour
     {
         toolActive = false;
         IsPlacingPoints = false;
-
         ResetMeasurement();
         isLocked = false;
-
         UpdateButtonText();
         UpdateLockButtonText();
     }
@@ -186,17 +191,13 @@ public class MeasurementTool : MonoBehaviour
     private void UpdateButtonText()
     {
         if (toggleButtonText != null)
-        {
             toggleButtonText.text = $"Measuring Tool: {(toolActive ? "Enabled" : "Disabled")}";
-        }
     }
 
     private void UpdateLockButtonText()
     {
         if (lockButtonText != null)
-        {
             lockButtonText.text = isLocked ? "Lock: Enabled" : "Lock: Disabled";
-        }
     }
 
     private Vector3 GetWorldPoint()
@@ -238,6 +239,7 @@ public class MeasurementTool : MonoBehaviour
         if (pointMarkerPrefab != null)
         {
             markerA = Instantiate(pointMarkerPrefab, points[0], Quaternion.identity);
+            markerOriginalScale = markerA.transform.localScale;
         }
     }
 
@@ -246,21 +248,19 @@ public class MeasurementTool : MonoBehaviour
         if (pointMarkerPrefab != null)
         {
             markerB = Instantiate(pointMarkerPrefab, points[1], Quaternion.identity);
+            markerOriginalScale = markerB.transform.localScale;
         }
     }
 
     private void UpdateMarkerPosition(GameObject marker, Vector3 position)
     {
         if (marker != null)
-        {
             marker.transform.position = position;
-        }
     }
 
     private void ResetMeasurement()
     {
         lineRenderer.positionCount = 0;
-
         if (markerA != null) Destroy(markerA);
         if (markerB != null) Destroy(markerB);
         if (measurementLabel != null) Destroy(measurementLabel);
@@ -272,7 +272,6 @@ public class MeasurementTool : MonoBehaviour
         state = MeasureState.Idle;
     }
 
-    // Detect if pointer is over UI (ignore UI clicks)
     private bool IsPointerOverUI()
     {
         return EventSystem.current != null && EventSystem.current.IsPointerOverGameObject();
