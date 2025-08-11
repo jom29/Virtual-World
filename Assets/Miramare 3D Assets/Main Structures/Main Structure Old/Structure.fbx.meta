@@ -1,5 +1,5 @@
 fileFormatVersion: 2
-guid: f5010a99e8bc66a43804e3a8e5db3667
+guid: 936ceaa4d89cbc046bf1e86e62b0e797
 ModelImporter:
   serializedVersion: 22200
   internalIDToNameTable: []
@@ -7,23 +7,23 @@ ModelImporter:
   - first:
       type: UnityEngine:Material
       assembly: UnityEngine.CoreModule
-      name: FlooringMat
-    second: {fileID: 2100000, guid: c0d1f1c002ee7ee4e997f3903bb5b9c3, type: 2}
+      name: MainStructure
+    second: {fileID: 2100000, guid: dce18098a4bbb374998eec68b3f6a616, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: StageMat
+    second: {fileID: 2100000, guid: 6d71270f3bcb1334e983bdaec45c88ed, type: 2}
   - first:
       type: UnityEngine:Material
       assembly: UnityEngine.CoreModule
       name: WindowDivider
-    second: {fileID: 2100000, guid: d464ef376a8358b45a6c030a3bab63ac, type: 2}
+    second: {fileID: 2100000, guid: 9d7b94992e9546b4290b41aa0889f7c0, type: 2}
   - first:
       type: UnityEngine:Material
       assembly: UnityEngine.CoreModule
       name: WindowGlass
-    second: {fileID: 2100000, guid: 1dcb78de57976e24abc81835a347b7f6, type: 2}
-  - first:
-      type: UnityEngine:Material
-      assembly: UnityEngine.CoreModule
-      name: lambert1
-    second: {fileID: 2100000, guid: 1b6ce6df16f7f3c4e928653afb213d7d, type: 2}
+    second: {fileID: 2100000, guid: 75ff1dd651c3ab34e8ae16b6fb198566, type: 2}
   materials:
     materialImportMode: 2
     materialName: 0
