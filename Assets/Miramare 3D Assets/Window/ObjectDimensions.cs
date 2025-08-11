@@ -24,7 +24,7 @@ public class ObjectDimensions : MonoBehaviour
     {
         inspectedRootObject = go; // store for bounding box display
 
-        // 🔹 NEW: Wrap Dimension Calculation (highest width, height, depth among all)
+        // --- Bounding box calculation ---
         wrapDimensions = Vector3.zero;
         MeshFilter[] allMeshFilters = go.GetComponentsInChildren<MeshFilter>(true);
         foreach (MeshFilter mf in allMeshFilters)
@@ -41,56 +41,53 @@ public class ObjectDimensions : MonoBehaviour
 
         Debug.Log($"[WRAP DIMENSIONS] {RemoveCloneTag(go.name)} | Width: {wrapDimensions.x:F2}, Height: {wrapDimensions.y:F2}, Depth: {wrapDimensions.z:F2}");
 
-        // --- ORIGINAL LOGIC BELOW ---
-        if (go.GetComponent<MeshFilter>() != null && go.GetComponent<MeshRenderer>() != null)
-        {
-            childrenWithMesh = new GameObject[] { go };
-        }
-        else
-        {
-            MeshFilter[] meshChildren = go.GetComponentsInChildren<MeshFilter>(true);
+        // --- Mesh child collection ---
+        MeshFilter[] meshChildren = go.GetComponentsInChildren<MeshFilter>(true);
+        List<GameObject> filteredChildren = new List<GameObject>();
+        HashSet<string> lodBaseNames = new HashSet<string>();
 
-            List<GameObject> filteredChildren = new List<GameObject>();
-            HashSet<string> lodBaseNames = new HashSet<string>();
-            HashSet<string> seenMeshAndMaterial = new HashSet<string>();
-
-            foreach (MeshFilter mf in meshChildren)
+        // Detect if any LOD exists
+        bool hasLOD = false;
+        foreach (var mf in meshChildren)
+        {
+            if (mf.name.ToUpper().Contains("LOD"))
             {
-                GameObject child = mf.gameObject;
+                hasLOD = true;
+                break;
+            }
+        }
 
-                MeshRenderer mr = child.GetComponent<MeshRenderer>();
-                if (mr == null) continue;
+        foreach (MeshFilter mf in meshChildren)
+        {
+            GameObject child = mf.gameObject;
+            MeshRenderer mr = child.GetComponent<MeshRenderer>();
+            if (mr == null) continue; // skip if no renderer
 
-                string meshID = mf.sharedMesh != null ? mf.sharedMesh.GetInstanceID().ToString() : "null";
-                string matIDs = "";
-                foreach (var mat in mr.sharedMaterials)
+            if (hasLOD)
+            {
+                // LOD mode: keep one object per base name
+                string baseName = Regex.Replace(child.name, @"LOD_\d+", "", RegexOptions.IgnoreCase).Trim();
+                if (!lodBaseNames.Contains(baseName))
                 {
-                    matIDs += (mat != null ? mat.GetInstanceID().ToString() : "null") + "_";
-                }
-                string uniqueKey = meshID + "|" + matIDs;
-                if (seenMeshAndMaterial.Contains(uniqueKey))
-                    continue;
-                seenMeshAndMaterial.Add(uniqueKey);
-
-                string objName = child.name;
-
-                if (objName.Contains("LOD"))
-                {
-                    string baseName = Regex.Replace(objName, @"LOD_\d+", "").Trim();
-                    if (!lodBaseNames.Contains(baseName))
-                    {
-                        lodBaseNames.Add(baseName);
-                        filteredChildren.Add(child);
-                    }
-                }
-                else
-                {
+                    lodBaseNames.Add(baseName);
                     filteredChildren.Add(child);
                 }
             }
-
-            childrenWithMesh = filteredChildren.ToArray();
+            else
+            {
+                // No LODs: add every mesh object as its own measurable
+                filteredChildren.Add(child);
+            }
         }
+
+        // If the root itself has a mesh, ensure it's included at the start
+        if (go.GetComponent<MeshFilter>() != null && go.GetComponent<MeshRenderer>() != null)
+        {
+            if (!filteredChildren.Contains(go))
+                filteredChildren.Insert(0, go);
+        }
+
+        childrenWithMesh = filteredChildren.ToArray();
 
         currentChildIndex = 0; // Start with bounding box display
         ShowCurrentChildDimensions();
