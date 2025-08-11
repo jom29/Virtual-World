@@ -516,6 +516,8 @@ public class MeshSelectorAndMover : MonoBehaviour
             propertiesDisplayerScript.DisplayTargetProperties("CustomShape");
         else if (hit.collider.CompareTag("Structure"))
             propertiesDisplayerScript.DisplayTargetProperties("Furniture");
+
+        ObjectDimensions.Instance.InspectObject(currentlySelectedObject);
     }
 
 
