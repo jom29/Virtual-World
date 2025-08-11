@@ -1,5 +1,6 @@
 ﻿using UnityEngine;
 using TMPro;
+using System.Collections;
 using System.Collections.Generic;
 using System.Text.RegularExpressions;
 using NaughtyAttributes;
@@ -8,6 +9,14 @@ public class ObjectDimensions : MonoBehaviour
 {
     public static ObjectDimensions Instance;
     public TextMeshProUGUI dimensionTxt;
+
+    [Header("Highlight Settings")]
+    public Material highlightMaterial; // assign in Inspector (semi-transparent Standard shader)
+    public float highlightDuration = 2f; // seconds to keep highlight
+
+    private Dictionary<GameObject, Material[]> originalMaterials = new Dictionary<GameObject, Material[]>();
+    private GameObject currentlyHighlighted;
+    private Coroutine revertCoroutine;
 
     private GameObject inspectedRootObject;
     private GameObject[] childrenWithMesh;
@@ -88,9 +97,10 @@ public class ObjectDimensions : MonoBehaviour
         }
 
         childrenWithMesh = filteredChildren.ToArray();
-
         currentChildIndex = 0; // Start with bounding box display
-        ShowCurrentChildDimensions();
+
+        // NOTE: No highlight here — highlight only in Next/Previous
+        ShowCurrentChildDimensions(false);
     }
 
     [Button]
@@ -99,7 +109,7 @@ public class ObjectDimensions : MonoBehaviour
         if (childrenWithMesh == null || childrenWithMesh.Length == 0) return;
 
         currentChildIndex = (currentChildIndex + 1) % (childrenWithMesh.Length + 1); // +1 for bounding box
-        ShowCurrentChildDimensions();
+        ShowCurrentChildDimensions(true);
     }
 
     [Button]
@@ -108,11 +118,14 @@ public class ObjectDimensions : MonoBehaviour
         if (childrenWithMesh == null || childrenWithMesh.Length == 0) return;
 
         currentChildIndex = (currentChildIndex - 1 + (childrenWithMesh.Length + 1)) % (childrenWithMesh.Length + 1);
-        ShowCurrentChildDimensions();
+        ShowCurrentChildDimensions(true);
     }
 
-    private void ShowCurrentChildDimensions()
+    private void ShowCurrentChildDimensions(bool doHighlight)
     {
+        // Remove old highlight first
+        ClearHighlight();
+
         if (childrenWithMesh == null || childrenWithMesh.Length == 0)
         {
             dimensionTxt.text = "No mesh found.";
@@ -125,6 +138,9 @@ public class ObjectDimensions : MonoBehaviour
             dimensionTxt.text =
                 $"[Bounding Box] {RemoveCloneTag(inspectedRootObject.name)}\n" +
                 $"Width: {wrapDimensions.x:F2}, Height: {wrapDimensions.y:F2}, Depth: {wrapDimensions.z:F2}";
+
+            if (doHighlight)
+                ApplyHighlight(inspectedRootObject); // highlight root
         }
         else
         {
@@ -135,7 +151,80 @@ public class ObjectDimensions : MonoBehaviour
             dimensionTxt.text =
                 $"[{childIndex + 1}/{childrenWithMesh.Length}] {RemoveCloneTag(currentObj.name)}\n" +
                 $"Width: {size.x:F2}, Height: {size.y:F2}, Depth: {size.z:F2}";
+
+            if (doHighlight)
+                ApplyHighlight(currentObj); // highlight specific child
         }
+    }
+
+    private void ApplyHighlight(GameObject obj)
+    {
+        if (obj == null || highlightMaterial == null) return;
+
+        MeshRenderer mr = obj.GetComponent<MeshRenderer>();
+        if (mr == null) return;
+
+        // store originals only if not already stored
+        if (!originalMaterials.ContainsKey(obj))
+            originalMaterials[obj] = mr.materials;
+
+        // create highlight array matching submesh count
+        Material[] highlightMats = new Material[mr.materials.Length];
+        for (int i = 0; i < highlightMats.Length; i++)
+        {
+            highlightMats[i] = highlightMaterial;
+        }
+        mr.materials = highlightMats;
+
+        currentlyHighlighted = obj;
+
+        // stop any existing revert coroutine and start a new one
+        if (revertCoroutine != null)
+        {
+            StopCoroutine(revertCoroutine);
+            revertCoroutine = null;
+        }
+        revertCoroutine = StartCoroutine(RemoveHighlightAfterDelay(obj, highlightDuration));
+    }
+
+    private void ClearHighlight()
+    {
+        if (revertCoroutine != null)
+        {
+            StopCoroutine(revertCoroutine);
+            revertCoroutine = null;
+        }
+
+        if (currentlyHighlighted != null && originalMaterials.ContainsKey(currentlyHighlighted))
+        {
+            MeshRenderer mr = currentlyHighlighted.GetComponent<MeshRenderer>();
+            if (mr != null)
+            {
+                mr.materials = originalMaterials[currentlyHighlighted];
+            }
+            originalMaterials.Remove(currentlyHighlighted);
+            currentlyHighlighted = null;
+        }
+    }
+
+    private IEnumerator RemoveHighlightAfterDelay(GameObject obj, float delay)
+    {
+        yield return new WaitForSeconds(delay);
+
+        if (obj != null && originalMaterials.ContainsKey(obj))
+        {
+            MeshRenderer mr = obj.GetComponent<MeshRenderer>();
+            if (mr != null)
+            {
+                mr.materials = originalMaterials[obj];
+            }
+            originalMaterials.Remove(obj);
+        }
+
+        if (currentlyHighlighted == obj)
+            currentlyHighlighted = null;
+
+        revertCoroutine = null;
     }
 
     public static Vector3 GetObjectSize(GameObject obj)
