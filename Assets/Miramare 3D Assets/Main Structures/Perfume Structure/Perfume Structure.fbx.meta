@@ -7,6 +7,11 @@ ModelImporter:
   - first:
       type: UnityEngine:Material
       assembly: UnityEngine.CoreModule
+      name: BackPanelMat
+    second: {fileID: 2100000, guid: e0b42c00734f47049bf67fcc50bbc834, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
       name: MainStructure
     second: {fileID: 2100000, guid: 263986aaa778b1b48855c6c08f8acf43, type: 2}
   - first:
