@@ -63,7 +63,6 @@ public class FirstPersonController : MonoBehaviour
             if (assetBundleLoaderScript != null)
             {
                 assetBundleLoaderScript.TurnOffInstantiate();
-                prefabSpawnerScript.TurnOffInstantiate();
             }
             MenuGO.SetActive(false);
         }

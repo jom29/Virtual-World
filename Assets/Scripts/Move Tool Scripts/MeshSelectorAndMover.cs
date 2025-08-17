@@ -6,12 +6,35 @@ using System;
 using TMPro;
 using NaughtyAttributes;
 using System.Drawing;
+using static MeshSelectorAndMover;
 
 public class MeshSelectorAndMover : MonoBehaviour
 {
+    public enum selectionEnum
+    {
+        none,
+        instantiate,
+        select,
+        move,
+        inspector
+    }
+
+    [Foldout("Selection Mode Icon")]
+    public RectTransform selectionModeIcon;
+    [Foldout("Selection Mode Icon")]
+    public RectTransform InstantiateParentPos;
+    [Foldout("Selection Mode Icon")]
+    public RectTransform SelectParentPos;
+    [Foldout("Selection Mode Icon")]
+    public RectTransform MoveParentPos;
+    [Foldout("Selection Mode Icon")]
+    public RectTransform InspectorParentPos;
+
+
+
+    public selectionEnum m_selectionEnum;
     public PropertiesDisplayer propertiesDisplayerScript;
     public PrefabSpawner prefabSpawnerScript;
-    public UpdateTextInstantiate updateTxtInstantiate;
     private Camera mainCamera;
     public Transform selectedObject;
     private Vector3 targetPosition;
@@ -44,7 +67,34 @@ public class MeshSelectorAndMover : MonoBehaviour
 
     private Vector3 clickOffset;
 
+    public void OnSelectionEnumChanged()
+    {
+        
+        //CHANGE PARENTS MECHANISM
+        if(m_selectionEnum == selectionEnum.instantiate)
+        {
+            selectionModeIcon.parent = InstantiateParentPos.transform;
+        }
 
+        else if(m_selectionEnum == selectionEnum.select)
+        {
+            selectionModeIcon.parent = SelectParentPos.transform;
+        }
+
+        else if(m_selectionEnum == selectionEnum.move)
+        {
+            selectionModeIcon.parent = MoveParentPos.transform;
+        }
+
+        else if(m_selectionEnum == selectionEnum.inspector)
+        {
+            selectionModeIcon.parent = InspectorParentPos.transform;
+        }
+
+
+        //UPDATE LOCAL POSITION
+        selectionModeIcon.anchoredPosition = new Vector2(27, -27);
+    }
 
     public void IncreaseHeight()
     {
@@ -117,6 +167,7 @@ public class MeshSelectorAndMover : MonoBehaviour
     void Start()
     {
         mainCamera = Camera.main;
+        OnSelectionEnumChanged();
     }
 
     void Update()
@@ -300,24 +351,27 @@ public class MeshSelectorAndMover : MonoBehaviour
 
     private int originalLayer;
 
-    public RectTransform selectionModeIcon;
+    
 
     public void SetSelect(bool select)
     {
         isSelectOnlyMode = select;
+
         if(select)
         {
             prefabSpawnerScript.instantiate = false;
-            updateTxtInstantiate.updateText();
-            selectionModeIcon.anchoredPosition = new Vector2(-17.6428f, 14.18117f);
+            m_selectionEnum = selectionEnum.select;
+            prefabSpawnerScript.TurnOffInstantiate();
         }
 
         else
         {
             prefabSpawnerScript.instantiate = false;
-            updateTxtInstantiate.updateText();
-            selectionModeIcon.anchoredPosition = new Vector2(100, 14.18117f);
+            m_selectionEnum = selectionEnum.move;
+            prefabSpawnerScript.TurnOffInstantiate();
         }
+
+        OnSelectionEnumChanged();
     }
 
     private void UpdateTargetPosition()
@@ -517,7 +571,10 @@ public class MeshSelectorAndMover : MonoBehaviour
         else if (hit.collider.CompareTag("Structure"))
             propertiesDisplayerScript.DisplayTargetProperties("Furniture");
 
-        ObjectDimensions.Instance.InspectObject(currentlySelectedObject);
+        if(currentlySelectedObject != null)
+        {
+            ObjectDimensions.Instance.InspectObject(currentlySelectedObject);
+        }
     }
 
 

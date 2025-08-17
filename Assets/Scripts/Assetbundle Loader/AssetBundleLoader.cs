@@ -14,7 +14,7 @@ public class AssetBundleLoader : MonoBehaviour
     private GameObject prefab;
 
     public bool instantiate;
-    public Text instantiateTxt;
+  
 
     public int indexNameTracker;
 
@@ -108,46 +108,21 @@ public class AssetBundleLoader : MonoBehaviour
         if(instantiate)
         {
             instantiate = false;
-
-            if(instantiateTxt != null)
-            {
-                instantiateTxt.text = "INSTANTIATE: OFF";
-                instantiateTxt.color = Color.white;
-            }
         }
 
         else
         {
             instantiate = true;
-
-            if(instantiateTxt != null)
-            {
-                instantiateTxt.text = "INSTANTIATE: ON";
-                instantiateTxt.color = Color.yellow;
-            }
         }
     }
 
     public void TurnOffInstantiate()
     {
         instantiate = false;
-        if(instantiateTxt != null)
-        {
-            instantiateTxt.text = "INSTANTIATE: OFF";
-            instantiateTxt.color = Color.white;
-        }
     }
 
 
-    public void OnEnable()
-    {
-        //RESET INSTANTIATE BUTTON LABEL STATUS
-        if(!instantiate && instantiateTxt.text.Equals("INSTANTIATE ON"))
-        {
-            instantiateTxt.text = "INSTANTIATE: OFF";
-            instantiateTxt.color = Color.white;
-        }
-    }
+   
 
 
     // Method to check if the pointer is over any UI element

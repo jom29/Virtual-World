@@ -69,9 +69,9 @@ namespace ProBuilder.Examples
             InitializeLineRenderer();
 
             // Setup button listeners for extrusion
-            upButton.onClick.AddListener(() => ExtrudeSelectedMesh(GetExtrudeHeight()));
-            downButton.onClick.AddListener(() => RevertMeshOrDestroy());
-            createModeButton.onClick.AddListener(ToggleCreateMode); // Assign toggle function
+            //upButton.onClick.AddListener(() => ExtrudeSelectedMesh(GetExtrudeHeight()));
+            //downButton.onClick.AddListener(() => RevertMeshOrDestroy());
+            //createModeButton.onClick.AddListener(ToggleCreateMode); // Assign toggle function
 
 
 

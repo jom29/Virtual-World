@@ -13,7 +13,6 @@ public class PrefabSpawner : MonoBehaviour
 
     public bool instantiate;
     public Text instantiateTxt; // TEXT IN SETTING TAB
-    public Text instantiateTxt_InTopView; // TEXT IN CAMERA TOP VIEW
 
     public int indexNameTracker;
     public event Action onPrefabChangeEvent;
@@ -124,31 +123,23 @@ public class PrefabSpawner : MonoBehaviour
         if (instantiateTxt != null)
         {
             instantiateTxt.text = "INSTANTIATE: " + (instantiate ? "ON" : "OFF");
-            instantiateTxt.color = instantiate ? Color.yellow : Color.white;
-        }
 
-        if (instantiateTxt_InTopView != null)
-        {
-            instantiateTxt_InTopView.text = "INSTANTIATE: " + (instantiate ? "ON" : "OFF");
-            instantiateTxt_InTopView.color = instantiate ? Color.yellow : Color.white;
-        }
 
-    }
+            //IF INSTANTIATE IS ON
+            if(instantiate)
+            {
+                moverScript.m_selectionEnum = MeshSelectorAndMover.selectionEnum.instantiate;
+                moverScript.OnSelectionEnumChanged();
+            }
 
-    public Text instantiateText_InFurnitureTab;
-
-    public void ToggleInstantiate_InFurnitureTab()
-    {
-        instantiate = !instantiate;
-
-        if (instantiateText_InFurnitureTab != null)
-        {
-            instantiateText_InFurnitureTab.text = "INSTANTIATE: " + (instantiate ? "ON" : "OFF");
-            instantiateTxt.color = instantiate ? Color.yellow : Color.white;
-
-            ObjectPropertiesHandler.Instance.panel.SetActive(instantiate);
+            else
+            {
+                moverScript.m_selectionEnum = MeshSelectorAndMover.selectionEnum.none;
+                moverScript.OnSelectionEnumChanged();
+            }
         }
     }
+
 
     public void TurnOffInstantiate()
     {

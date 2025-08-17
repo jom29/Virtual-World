@@ -46,6 +46,7 @@ public class ObjectInspectorHandler : MonoBehaviour
         {
             if(!panel.activeInHierarchy)
             {
+              
                 panel.SetActive(true);
                 Debug.Log("Show Up");
             }
@@ -73,6 +74,9 @@ public class ObjectInspectorHandler : MonoBehaviour
             scale_x.text = Scale.x.ToString("F3");
             scale_y.text = Scale.y.ToString("F3");
             scale_z.text = Scale.z.ToString("F3");
+
+            moverScript.m_selectionEnum = MeshSelectorAndMover.selectionEnum.inspector;
+            moverScript.OnSelectionEnumChanged();
         }
         else
         {

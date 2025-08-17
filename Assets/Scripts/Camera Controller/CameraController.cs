@@ -99,6 +99,7 @@ public class CameraController : MonoBehaviour
             CameraText.text = "TOP VIEW";
             TopView_Setup();
             viewMode?.Invoke();
+            Debug.Log("In Top View");
         }
         else
         {
@@ -106,6 +107,7 @@ public class CameraController : MonoBehaviour
             CameraText.text = "FPS VIEW";
             FPS_Setup();
             viewMode?.Invoke();
+            Debug.Log("In Perspective View");
         }
     }
 

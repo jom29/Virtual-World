@@ -36,7 +36,6 @@ public class MenuHandler : MonoBehaviour
             if(i != 3)
             {
                 assetBundleLoaderScript.TurnOffInstantiate();
-                prefabRespawnerScript.TurnOffInstantiate();
             }
         }
     }
