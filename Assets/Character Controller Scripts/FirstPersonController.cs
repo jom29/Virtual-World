@@ -2,9 +2,13 @@
 using UnityEngine.EventSystems;
 using TMPro;
 using System.Collections.Generic;
+using System.Collections;
+using UnityEngine.UI;
+
 
 public class FirstPersonController : MonoBehaviour
 {
+    public SceneDataHandler sceneDataHandler;
     public float speed = 5f;
     public float mouseSensitivity = 2f;
     public float jumpHeight = 1f;
@@ -17,10 +21,21 @@ public class FirstPersonController : MonoBehaviour
 
     public TextMeshProUGUI cameraRotationTextStatus;
     public GameObject MenuGO;
+    public GameObject OtheUI;
     public AssetBundleLoader assetBundleLoaderScript;
     public PrefabSpawner prefabSpawnerScript;
 
     public MeshSelectorAndMover moverScript;
+
+    [Space]
+
+    [Header("Authorization")]
+    public GameObject DimensionPanel;
+    public GameObject autorizationPanel;
+    public InputField AuthorizationInput;
+    public Text notificationText;
+    public string password;
+    public bool isEditable;
 
 #if UNITY_ANDROID
     private Vector3 targetPosition;
@@ -41,10 +56,61 @@ public class FirstPersonController : MonoBehaviour
     private float webglTouchSensitivity = 0.2f;
 #endif
 
+    private void InitialCameraConfig()
+    {
+        moverScript.enabled = false;
+
+        cameraRotationTextStatus.text = "Rotated Camera: On";
+        isRotatingCamera = true;
+        if (MenuGO != null)
+        {
+            if (assetBundleLoaderScript != null)
+            {
+                prefabSpawnerScript.TurnOffInstantiate();
+            }
+            MenuGO.SetActive(false);
+            OtheUI.SetActive(false);
+            DimensionPanel.SetActive(false);
+        }
+
+        isEditable = false;
+    }
+
+
+    private void StartEdit()
+    {
+        moverScript.enabled = true;
+
+        cameraRotationTextStatus.text = "Rotated Camera: Off";
+        isRotatingCamera = false;
+        if (MenuGO != null) MenuGO.SetActive(true);
+        if (OtheUI != null) OtheUI.SetActive(true);
+        if (DimensionPanel != null) DimensionPanel.SetActive(true);
+      
+    }
+
+
     private void Start()
     {
+        InitialCameraConfig();
+
         controller = GetComponent<CharacterController>();
         playerCamera = GetComponentInChildren<Camera>();
+
+        moverScript.enabled = false;
+
+        cameraRotationTextStatus.text = "Rotated Camera: On";
+        isRotatingCamera = true;
+        if (MenuGO != null)
+        {
+            if (assetBundleLoaderScript != null)
+            {
+                assetBundleLoaderScript.TurnOffInstantiate();
+                prefabSpawnerScript.TurnOffInstantiate();
+            }
+            MenuGO.SetActive(false);
+        }
+
 
 #if UNITY_ANDROID
         targetPosition = transform.position;
@@ -85,36 +151,101 @@ public class FirstPersonController : MonoBehaviour
         playerCamera.transform.localEulerAngles = rotation;
     }
 
+
+ 
+
+
     private void RotateCameraController()
     {
-        if (Input.GetKeyDown(KeyCode.R) && isRotatingCamera)
+        if(isEditable)
         {
-            moverScript.enabled = true;
-
-            cameraRotationTextStatus.text = "Rotated Camera: Off";
-            isRotatingCamera = false;
-            if (MenuGO != null) MenuGO.SetActive(true);
-        }
-        else if (Input.GetKeyDown(KeyCode.R) && !isRotatingCamera)
-        {
-            moverScript.enabled = false;
-
-            cameraRotationTextStatus.text = "Rotated Camera: On";
-            isRotatingCamera = true;
-            if (MenuGO != null)
+            if (Input.GetKeyDown(KeyCode.R) && isRotatingCamera)
             {
-                if (assetBundleLoaderScript != null)
-                {
-                    assetBundleLoaderScript.TurnOffInstantiate();
-                    prefabSpawnerScript.TurnOffInstantiate();
-                }
-                MenuGO.SetActive(false);
+                moverScript.enabled = true;
+
+                cameraRotationTextStatus.text = "Rotated Camera: Off";
+                isRotatingCamera = false;
+                if (MenuGO != null) MenuGO.SetActive(true);
+                if (OtheUI != null) OtheUI.SetActive(true);
+
             }
+            else if (Input.GetKeyDown(KeyCode.R) && !isRotatingCamera)
+            {
+                moverScript.enabled = false;
+
+                cameraRotationTextStatus.text = "Rotated Camera: On";
+                isRotatingCamera = true;
+                if (MenuGO != null && OtheUI != null)
+                {
+                    if (assetBundleLoaderScript != null)
+                    {
+                        assetBundleLoaderScript.TurnOffInstantiate();
+                        prefabSpawnerScript.TurnOffInstantiate();
+                    }
+                    MenuGO.SetActive(false);
+                    OtheUI.SetActive(false);
+                }
+            }
+        }
+    }
+
+
+    IEnumerator disableAuthorizationPanelUponFailed()
+    {
+        yield return new WaitForSeconds(2);
+        notificationText.text = "";
+        AuthorizationInput.text = "";
+        autorizationPanel.SetActive(false);
+        isRotatingCamera = true;
+        InitialCameraConfig();
+    }
+
+
+    IEnumerator disableAuthorizationPanelUponSuccess()
+    {
+        yield return new WaitForSeconds(2);
+        notificationText.text = "";
+        AuthorizationInput.text = "";
+        autorizationPanel.SetActive(false);
+        isEditable = true;
+
+        StartEdit();
+    }
+
+    public void AccessEdit()
+    {
+        if(AuthorizationInput.text == password)
+        {
+            notificationText.text = "Successfully Accessible!";
+
+            StartCoroutine(disableAuthorizationPanelUponSuccess());
+        }
+
+        else
+        {
+            notificationText.text = "IncorrectPassword!";
+            StartCoroutine(disableAuthorizationPanelUponFailed());
         }
     }
 
     private void Update()
     {
+        // ACCESSIBLE IN VIEW MODE ONLY
+        if(!isEditable)
+        {
+            if(Input.GetKeyDown(KeyCode.L))
+            {
+                sceneDataHandler.LoadScene();
+            }
+        }
+
+        if(Input.GetKeyDown(KeyCode.T))
+        {
+            isRotatingCamera = false;
+            autorizationPanel.SetActive(true);
+        }
+
+
         RotateCameraController();
 
 #if UNITY_ANDROID
@@ -213,6 +344,7 @@ public class FirstPersonController : MonoBehaviour
 
 #if !UNITY_ANDROID
     // ---------------------- WEBGL MOBILE ----------------------
+    // ---------------------- WEBGL MOBILE ----------------------
     private void HandleWebGLMobileControls()
     {
         if (Input.touchCount > 0)
@@ -234,27 +366,20 @@ public class FirstPersonController : MonoBehaviour
 
                 if (webglIsSwiping)
                 {
-                    // Horizontal: already reversed (keep as-is)
-                    float rotY = -delta.x * webglTouchSensitivity; // swipe right = look right
-
-                    // Vertical: reverse logic compared to current (fix here)
-                    float rotX = delta.y * webglTouchSensitivity;  // swipe up = look up
+                    float rotY = -delta.x * webglTouchSensitivity;
+                    float rotX = delta.y * webglTouchSensitivity;
 
                     Vector3 rotation = playerCamera.transform.localEulerAngles;
-                    rotation.x += rotX;   // Apply pitch (now correct)
-                    rotation.y += rotY;   // Apply yaw (kept correct)
+                    rotation.x += rotX;
+                    rotation.y += rotY;
                     rotation.z = 0;
 
-                    // Clamp pitch to avoid flipping
                     float pitch = rotation.x > 180 ? rotation.x - 360 : rotation.x;
                     pitch = Mathf.Clamp(pitch, -80f, 80f);
                     rotation.x = pitch < 0 ? 360 + pitch : pitch;
 
                     playerCamera.transform.localEulerAngles = rotation;
                 }
-
-
-
             }
             else if (touch.phase == TouchPhase.Ended && !webglIsSwiping)
             {
@@ -266,8 +391,11 @@ public class FirstPersonController : MonoBehaviour
 
                 if (Physics.Raycast(ray, out hit))
                 {
-                    if (hit.collider.CompareTag("Floor"))
+                    if (hit.collider.CompareTag("Floor") ||
+                        hit.collider.CompareTag("Other") ||
+                        hit.collider.CompareTag("Structure"))
                     {
+                        // snap target to ground Y
                         webglTargetPosition = hit.point;
                         webglHasTarget = true;
                     }
@@ -275,7 +403,9 @@ public class FirstPersonController : MonoBehaviour
             }
         }
 
-        // Move toward target
+        // ---- Move toward target ----
+        Vector3 move = Vector3.zero;
+
         if (webglHasTarget)
         {
             Vector3 direction = (webglTargetPosition - transform.position);
@@ -283,14 +413,40 @@ public class FirstPersonController : MonoBehaviour
 
             if (direction.magnitude > 0.2f)
             {
-                controller.Move(direction.normalized * speed * Time.deltaTime);
+                // Block check
+                if (Physics.Raycast(transform.position + Vector3.up * 0.5f, direction.normalized,
+                                    out RaycastHit obstacleHit, direction.magnitude))
+                {
+                    if (!obstacleHit.collider.CompareTag("Floor") &&
+                        !obstacleHit.collider.CompareTag("Other") &&
+                        !obstacleHit.collider.CompareTag("Structure"))
+                    {
+                        webglHasTarget = false;
+                        return;
+                    }
+                }
+
+                move += direction.normalized * speed;
             }
             else
             {
                 webglHasTarget = false;
             }
         }
+
+        // ---- Gravity & Ground check ----
+        isGrounded = controller.isGrounded;
+        if (isGrounded && verticalVelocity < 0)
+            verticalVelocity = -2f; // small push down keeps grounded
+        else
+            verticalVelocity += Physics.gravity.y * Time.deltaTime;
+
+        move.y = verticalVelocity;
+
+        // Apply final move
+        controller.Move(move * Time.deltaTime);
     }
+
 
 
     // ---------------------- WEBGL DESKTOP + EDITOR ----------------------

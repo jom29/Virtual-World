@@ -19,6 +19,8 @@ public class PrefabSpawner : MonoBehaviour
 
     public MeshSelectorAndMover moverScript;
 
+    public GameObject ObjectPropertiesPanel;
+
     void Update()
     {
         // -------- PC / Editor (mouse click) --------
@@ -137,6 +139,8 @@ public class PrefabSpawner : MonoBehaviour
                 moverScript.m_selectionEnum = MeshSelectorAndMover.selectionEnum.none;
                 moverScript.OnSelectionEnumChanged();
             }
+
+            ObjectPropertiesPanel.SetActive(instantiate);
         }
     }
 
