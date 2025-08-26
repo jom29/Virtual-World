@@ -3,9 +3,17 @@ using UnityEngine;
 using System.Runtime.InteropServices;
 using UnityEngine.UI;
 using System.Collections;
+using UnityEngine.Networking;
+using TMPro;
 
 public class SceneDataHandler : MonoBehaviour
 {
+
+
+    [Header("Cloud Function Endpoints")]
+    public string saveJsonEndpoint;   // Endpoint for saving JSON
+    public string readJsonEndpoint;   // Endpoint for reading JSON
+
     [System.Serializable]
     public class ObjectData
     {
@@ -25,6 +33,20 @@ public class SceneDataHandler : MonoBehaviour
     public List<GameObject> prefabList;
     private Dictionary<string, GameObject> prefabDict = new Dictionary<string, GameObject>();
 
+
+    [Space]
+    [Header("Text Notification")]
+    public TextMeshProUGUI saveSceneTextNotification;
+
+
+
+    [Space]
+    [Header("Loading Panel")]
+    public CanvasGroup loadingCanvasGroup;   // Drag your panel here in Inspector
+    public TextMeshProUGUI loadingText;
+    public float fadeDuration = 1.5f;        // seconds for fade out
+
+
     // ================
     // WEBGL-ONLY PLUGINS
     // ================
@@ -38,8 +60,9 @@ public class SceneDataHandler : MonoBehaviour
 
     void Awake()
     {
-        // Force name for SendMessage compatibility (needed for WebGL)
-        this.name = "SceneDataHandler";
+        loadingCanvasGroup.gameObject.SetActive(true);
+
+        this.name = "SceneDataHandler"; // WebGL SendMessage compatibility
 
         prefabDict.Clear();
         foreach (var prefab in prefabList)
@@ -55,25 +78,78 @@ public class SceneDataHandler : MonoBehaviour
     }
 
     // ====================
-    // DEFAULT LOAD
+    // DEFAULT LOAD (now uses backend for WebGL)
+    // ====================
+    // ====================
     // ====================
     private void LoadDefaultScene()
     {
-        TextAsset jsonAsset = Resources.Load<TextAsset>("sceneData");
-        if (jsonAsset != null)
-            LoadSceneFromJson(jsonAsset.text);
-        else
-            Debug.LogWarning("Default sceneData.json not found in Resources.");
+        if (string.IsNullOrEmpty(readJsonEndpoint))
+        {
+            Debug.LogError("Read JSON endpoint not set.");
+            return;
+        }
+
+        StartCoroutine(FetchSceneFromBackendWithFallback());
     }
+
+    private IEnumerator FetchSceneFromBackendWithFallback()
+    {
+        using (UnityWebRequest request = UnityWebRequest.Get(readJsonEndpoint))
+        {
+            yield return request.SendWebRequest();
+
+            if (request.result != UnityWebRequest.Result.Success)
+            {
+                Debug.LogWarning("Backend unavailable, falling back to local sceneData.json. Error: " + request.error);
+
+                TextAsset jsonAsset = Resources.Load<TextAsset>("sceneData");
+                if (jsonAsset != null)
+                    LoadSceneFromJson(jsonAsset.text);
+                else
+                    Debug.LogError("No backend and no local sceneData.json found!");
+            }
+            else
+            {
+                LoadSceneFromJson(request.downloadHandler.text);
+            }
+        }
+    }
+
+
+
+#if UNITY_WEBGL && !UNITY_EDITOR
+    private IEnumerator FetchSceneFromBackend()
+    {
+        using (UnityEngine.Networking.UnityWebRequest request =
+            UnityEngine.Networking.UnityWebRequest.Get(readJsonEndpoint + "?t=" + Time.time))
+        {
+            request.SetRequestHeader("Cache-Control", "no-cache");
+
+            yield return request.SendWebRequest();
+
+            if (request.result != UnityEngine.Networking.UnityWebRequest.Result.Success)
+            {
+                Debug.LogError("Failed to fetch scene JSON: " + request.error);
+            }
+            else
+            {
+                string jsonResponse = request.downloadHandler.text;
+                LoadSceneFromJson(jsonResponse);
+                Debug.Log("Scene loaded from backend JSON");
+            }
+        }
+    }
+#endif
 
     // ====================
     // SAVE
     // ====================
-
     public GameObject SaveFilePopupGO;
     public InputField inputFileName;
     public GameObject okBtn;
     public string fileName;
+    public Text warningText;
 
     public void SaveFileNamePopup()
     {
@@ -84,16 +160,12 @@ public class SceneDataHandler : MonoBehaviour
         okBtn.SetActive(true);
     }
 
-    public Text warningText;
-
-  
     public void RenameSaveFile()
     {
-        if(inputFileName.text == string.Empty)
+        if (inputFileName.text == string.Empty)
         {
             warningText.text = "Invalid Input Please Put correct file name!";
         }
-
         else
         {
             fpsController.enabled = true;
@@ -103,9 +175,13 @@ public class SceneDataHandler : MonoBehaviour
             okBtn.SetActive(false);
             StartCoroutine(delayClosePopup());
         }
-       
     }
 
+    public void SaveFileDirect()
+    {
+        fileName = "sceneData";
+        SaveScene();
+    }
 
     IEnumerator delayClosePopup()
     {
@@ -135,31 +211,55 @@ public class SceneDataHandler : MonoBehaviour
 
         string json = JsonUtility.ToJson(data, true);
 
-#if UNITY_WEBGL && !UNITY_EDITOR
-    // WebGL download
-    DownloadFile(fileName + ".json", json);
-
-#elif UNITY_ANDROID && !UNITY_EDITOR
-    // Android: save to persistentDataPath
-    string path = Application.persistentDataPath + "/sceneData.json";
-    System.IO.File.WriteAllText(path, json);
-    Debug.Log("Saved JSON to Android: " + path);
-
-#elif UNITY_EDITOR
-        // Editor: Save to Resources folder
-        string resourcesFolder = Application.dataPath + "/Resources";
-        if (!System.IO.Directory.Exists(resourcesFolder))
+        // ✅ Always save to backend endpoint
+        if (string.IsNullOrEmpty(saveJsonEndpoint))
         {
-            System.IO.Directory.CreateDirectory(resourcesFolder);
+            Debug.LogError("Save JSON endpoint not set.");
+            return;
         }
 
-        string path = resourcesFolder + "/" + fileName + ".json";
-        System.IO.File.WriteAllText(path, json);
-        Debug.Log("Saved JSON to Resources folder: " + path);
+        StartCoroutine(SaveSceneToBackend(json, fileName));
+    }
 
-        // Refresh the AssetDatabase so the new file appears in Unity
-        UnityEditor.AssetDatabase.Refresh();
-#endif
+    private IEnumerator SaveSceneToBackend(string jsonData, string filename)
+    {
+        using (var request = new UnityEngine.Networking.UnityWebRequest(saveJsonEndpoint, "POST"))
+        {
+            byte[] bodyRaw = System.Text.Encoding.UTF8.GetBytes(jsonData);
+            request.uploadHandler = new UnityEngine.Networking.UploadHandlerRaw(bodyRaw);
+            request.downloadHandler = new UnityEngine.Networking.DownloadHandlerBuffer();
+            request.SetRequestHeader("Content-Type", "application/json");
+
+            yield return request.SendWebRequest();
+
+            if (request.result != UnityEngine.Networking.UnityWebRequest.Result.Success)
+            {
+                saveSceneTextNotification.gameObject.SetActive(true);
+                yield return null;
+                Debug.LogError("❌ Failed to save scene JSON: " + request.error);
+                StartCoroutine(SaveSceneNotificationIE("❌ Failed to save scene JSON: " + request.error));
+            }
+            else
+            {
+                saveSceneTextNotification.gameObject.SetActive(true);
+                yield return null;
+
+                Debug.Log("✅ Scene JSON successfully saved to backend: " + request.downloadHandler.text);
+                StartCoroutine(SaveSceneNotificationIE("✅ Scene JSON successfully saved to backend!" + request.downloadHandler.text));
+            }
+        }
+    }
+
+    IEnumerator SaveSceneNotificationIE(string valueContent)
+    {
+        yield return new WaitForSeconds(0);
+        saveSceneTextNotification.text = valueContent;
+
+        yield return new WaitForSeconds(3);
+
+        saveSceneTextNotification.text = "";
+        yield return null;
+        saveSceneTextNotification.gameObject.SetActive(false);
     }
 
 
@@ -169,10 +269,8 @@ public class SceneDataHandler : MonoBehaviour
     public void LoadScene()
     {
 #if UNITY_WEBGL && !UNITY_EDITOR
-        // WebGL file picker
         UploadFile("SceneDataHandler", "OnFileLoaded");
 #elif UNITY_ANDROID && !UNITY_EDITOR
-        // Android: load from persistentDataPath
         string path = Application.persistentDataPath + "/sceneData.json";
         if (System.IO.File.Exists(path))
         {
@@ -184,7 +282,6 @@ public class SceneDataHandler : MonoBehaviour
             LoadDefaultScene();
         }
 #elif UNITY_EDITOR
-        // Editor: load from persistentDataPath
         string path = Application.persistentDataPath + "/sceneData.json";
         if (System.IO.File.Exists(path))
         {
@@ -219,13 +316,11 @@ public class SceneDataHandler : MonoBehaviour
             return;
         }
 
-        // Clear existing saveable objects
         foreach (var saveable in FindObjectsOfType<SaveableObject>())
         {
             Destroy(saveable.gameObject);
         }
 
-        // Recreate saved objects
         foreach (var objData in data.objects)
         {
             if (!prefabDict.ContainsKey(objData.prefabName))
@@ -240,11 +335,49 @@ public class SceneDataHandler : MonoBehaviour
             instance.transform.eulerAngles = new Vector3(objData.rotation[0], objData.rotation[1], objData.rotation[2]);
             instance.transform.localScale = new Vector3(objData.scale[0], objData.scale[1], objData.scale[2]);
 
-            // Re-attach SaveableObject
             var saveable = instance.GetComponent<SaveableObject>() ?? instance.AddComponent<SaveableObject>();
             saveable.id = objData.prefabName;
         }
 
         Debug.Log("Scene loaded from JSON");
+
+        // ✅ Start fading out the black panel once loading is complete
+        if (loadingCanvasGroup != null)
+        {
+            StartCoroutine(FadeOutLoadingPanel());
+        }
     }
+
+
+    private IEnumerator FadeOutLoadingPanel()
+    {
+        float elapsed = 0f;
+
+        while (elapsed < fadeDuration)
+        {
+            elapsed += Time.deltaTime;
+            float t = Mathf.Clamp01(elapsed / fadeDuration);
+
+            // Fade out panel
+            loadingCanvasGroup.alpha = Mathf.Lerp(1f, 0f, t);
+
+            // Update percentage text
+            if (loadingText != null)
+            {
+                int percent = Mathf.RoundToInt(t * 100f);
+                loadingText.text = percent.ToString() + "%";
+            }
+
+            yield return null;
+        }
+
+        // Ensure end state
+        loadingCanvasGroup.alpha = 0f;
+
+        if (loadingText != null)
+            loadingText.text = "100%";
+
+        loadingCanvasGroup.gameObject.SetActive(false); // hide panel completely
+    }
+
 }
