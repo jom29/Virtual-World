@@ -32777,9 +32777,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 709e38986e801e543b90951cc34d50fb, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  saveJsonEndpoint: https://us-central1-mywebgl-467310.cloudfunctions.net/updateSceneJson
   readJsonEndpoint: https://us-central1-mywebgl-467310.cloudfunctions.net/readSceneJsonCORS
-  fpsController: {fileID: 656260687}
+  saveJsonEndpoint: https://us-central1-mywebgl-467310.cloudfunctions.net/updateSceneJson
   prefabList:
   - {fileID: 1494342709627189687, guid: 9d0cf631bd3383249867643635d888bf, type: 3}
   - {fileID: 933205692813356824, guid: 22f3cbe55964bd44ab582eb7b3af7d57, type: 3}
@@ -32811,11 +32810,7 @@ MonoBehaviour:
   loadingCanvasGroup: {fileID: 1656405658}
   loadingText: {fileID: 234776104}
   fadeDuration: 1.5
-  SaveFilePopupGO: {fileID: 1519154565}
-  inputFileName: {fileID: 1501887613}
-  okBtn: {fileID: 404571432}
   fileName: sceneData.json
-  warningText: {fileID: 1829175496}
 --- !u!114 &824526182
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -65737,7 +65732,7 @@ MonoBehaviour:
       m_Calls:
       - m_Target: {fileID: 824526181}
         m_TargetAssemblyTypeName: SceneDataHandler, Assembly-CSharp
-        m_MethodName: SaveFileDirect
+        m_MethodName: SaveScene
         m_Mode: 1
         m_Arguments:
           m_ObjectArgument: {fileID: 0}
@@ -66750,29 +66745,25 @@ MonoBehaviour:
   sceneDataHandlerScript: {fileID: 824526181}
   furnitureSelectorScript: {fileID: 1973871239}
   bundleRequests:
-  - folderPath: Assetbundle/Chairs/
-    bundleName: mysphere
-    prefabName: Sphere
-    instantiatePosition: {x: 0, y: 0, z: 0}
-    objectType: 1
-  - folderPath: Assetbundle/Chairs/
-    bundleName: mycapsule
-    prefabName: Capsule
-    instantiatePosition: {x: 0, y: 0, z: 0}
-    objectType: 1
-  - folderPath: Assetbundle/Chairs/
+  - folderPath: Assetbundle/Chairs
     bundleName: mycube
     prefabName: Cube
-    instantiatePosition: {x: 0, y: 0, z: 0}
+    instantiatePosition: {x: 0, y: -2, z: 0}
+    objectType: 1
+  - folderPath: Assetbundle/Chairs
+    bundleName: mysphere
+    prefabName: Sphere
+    instantiatePosition: {x: 0, y: -4, z: 0}
+    objectType: 1
+  - folderPath: Assetbundle/Chairs
+    bundleName: mycapsule
+    prefabName: Capsule
+    instantiatePosition: {x: 0, y: -6, z: 0}
     objectType: 1
   isDoneLoading: 0
   functionUrl: https://us-central1-mywebgl-467310.cloudfunctions.net/getAssetBundleCORS
-  folderPath: 
-  bundleName: 
-  prefabName: 
-  instantiatePosition: {x: 0, y: 0, z: 0}
-  objectType: 0
   instantiatePrefab: 1
+  GroupParent: {fileID: 1714868757}
 --- !u!1001 &1718154372
 PrefabInstance:
   m_ObjectHideFlags: 0
