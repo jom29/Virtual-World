@@ -26,6 +26,7 @@ public class SceneDataHandler : MonoBehaviour
     void Awake()
     {
         prefabList = prefabList ?? new List<GameObject>();
+        loadingCanvasGroup.gameObject.SetActive(true);
     }
 
     // ====================

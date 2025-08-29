@@ -1,13 +1,12 @@
 ﻿using UnityEngine;
-using UnityEngine.Networking;
+using UnityEngine.Networking; // Required for downloading AssetBundles from URLs
 using System.Collections;
 using System.Collections.Generic;
-using System.Linq;
-
-
+using System.Linq; // Provides helper methods like Concat, Contains, etc.
 
 public class DynamicPathAssetBundleLoader : MonoBehaviour
 {
+    // Enum to categorize the type of object being loaded
     public enum ObjectType
     {
         chandelier,
@@ -16,55 +15,61 @@ public class DynamicPathAssetBundleLoader : MonoBehaviour
         props
     }
 
+    // Serializable class to define each AssetBundle load request
     [System.Serializable]
     public class AssetbundleRequest
     {
-        public string folderPath;           // e.g. "myfolder/chairs/"
-        public string bundleName;           // e.g. "mycube"
-        public string prefabName;           // e.g. "CubePrefab"
-        public Vector3 instantiatePosition; // where prefab will spawn
-        public ObjectType objectType;
+        public string folderPath;           // Optional folder path in cloud storage
+        public string bundleName;           // Name of the AssetBundle file
+        public string prefabName;           // Name of the prefab inside the bundle
+        public Vector3 instantiatePosition; // World position where prefab should be spawned
+        public ObjectType objectType;       // Type of object for categorization
     }
 
+    // References to other scripts for scene and furniture management
     public SceneDataHandler sceneDataHandlerScript;
     public FurnitureSelector furnitureSelectorScript;
 
     [Header("AssetBundle Requests List")]
-    public List<AssetbundleRequest> bundleRequests = new List<AssetbundleRequest>();
-    public bool isDoneLoading;
+    public List<AssetbundleRequest> bundleRequests = new List<AssetbundleRequest>(); // List of bundles to load
+    public bool isDoneLoading; // Flag to indicate when loading is complete
 
     [Header("Cloud Function Endpoint")]
     public string functionUrl = "https://us-central1-mywebgl-467310.cloudfunctions.net/getAssetBundleCORS";
+    // URL endpoint to fetch AssetBundles
 
     [Header("Options")]
-    public bool instantiatePrefab = true; // toggle instantiation
+    public bool instantiatePrefab = true; // Option to control whether prefabs are instantiated
+    public Transform GroupParent; // Optional parent transform for instantiated prefabs
 
-    public Transform GroupParent; // optional parent for instantiated prefabs
-
-    // Keep all bundles alive
+    // Caches loaded AssetBundles and prevents duplicate prefab instantiation
     private Dictionary<string, AssetBundle> loadedBundles = new Dictionary<string, AssetBundle>();
-    private HashSet<string> loadedPrefabNames = new HashSet<string>(); // Prevent duplicates
+    private HashSet<string> loadedPrefabNames = new HashSet<string>();
 
     private void Start()
     {
+        // Start loading all bundle requests sequentially at scene start
         StartCoroutine(LoadRequestSequential());
     }
 
+    // Coroutine to sequentially load each AssetBundle request
     IEnumerator LoadRequestSequential()
     {
         for (int i = 0; i < bundleRequests.Count; i++)
         {
+            // Load individual bundle
             yield return LoadAssetBundle(bundleRequests[i]);
-            yield return new WaitForSeconds(0.2f); // small delay between loads
+            yield return new WaitForSeconds(0.2f); // Small delay between loads
         }
 
         Debug.Log("Finish Loading!");
 
-        // Trigger default scene loading after AssetBundles are instantiated
+        // After all bundles are loaded, optionally trigger default scene setup
         if (sceneDataHandlerScript != null)
             sceneDataHandlerScript.LoadDefaultScene();
     }
 
+    // Context menu function to manually test loading the first request
     [ContextMenu("Load AssetBundle (Manual Test First Request)")]
     public void LoadAssetBundleManual()
     {
@@ -72,37 +77,42 @@ public class DynamicPathAssetBundleLoader : MonoBehaviour
             StartCoroutine(LoadAssetBundle(bundleRequests[0]));
     }
 
+    // Coroutine to load a single AssetBundle and instantiate its prefab
     private IEnumerator LoadAssetBundle(AssetbundleRequest request)
     {
-        isDoneLoading = false;
+        isDoneLoading = false; // Mark loading in progress
 
+        // Validate bundle name
         if (string.IsNullOrEmpty(request.bundleName))
         {
             Debug.LogError("[Loader] Bundle name is required!");
             yield break;
         }
 
-        // Skip if prefab already loaded
+        // Skip if prefab was already loaded to prevent duplicates
         if (loadedPrefabNames.Contains(request.prefabName))
         {
             Debug.Log($"[Loader] Prefab '{request.prefabName}' already loaded, skipping.");
             yield break;
         }
 
-        string cacheKey = request.bundleName;
+        string cacheKey = request.bundleName; // Key used to cache AssetBundles
         AssetBundle bundle = null;
 
-        // Only load bundle if not loaded yet
+        // Load AssetBundle only if not already cached
         if (!loadedBundles.TryGetValue(cacheKey, out bundle))
         {
+            // Combine folder path and bundle name if folder path exists
             string objectPath = string.IsNullOrEmpty(request.folderPath)
                 ? request.bundleName
                 : System.IO.Path.Combine(request.folderPath, request.bundleName).Replace("\\", "/");
 
+            // Construct URL with proper encoding
             string url = $"{functionUrl}?name={UnityWebRequest.EscapeURL(objectPath)}";
 
             Debug.Log($"[Loader] Requesting AssetBundle from: {url}");
 
+            // Send web request to download AssetBundle
             using (UnityWebRequest uwr = UnityWebRequestAssetBundle.GetAssetBundle(url))
             {
                 yield return uwr.SendWebRequest();
@@ -113,6 +123,7 @@ public class DynamicPathAssetBundleLoader : MonoBehaviour
                     yield break;
                 }
 
+                // Extract AssetBundle from web request response
                 bundle = DownloadHandlerAssetBundle.GetContent(uwr);
                 if (bundle == null)
                 {
@@ -120,12 +131,14 @@ public class DynamicPathAssetBundleLoader : MonoBehaviour
                     yield break;
                 }
 
+                // Cache loaded AssetBundle
                 loadedBundles[cacheKey] = bundle;
                 Debug.Log($"[Loader] AssetBundle '{cacheKey}' loaded successfully!");
             }
         }
         else
         {
+            // Use cached AssetBundle if already loaded
             Debug.Log($"[Loader] Using cached bundle '{cacheKey}'");
         }
 
@@ -135,21 +148,25 @@ public class DynamicPathAssetBundleLoader : MonoBehaviour
             GameObject prefab = bundle.LoadAsset<GameObject>(request.prefabName);
             if (prefab != null)
             {
+                // Create instance at requested position
                 GameObject instance = Instantiate(prefab, request.instantiatePosition, Quaternion.identity);
 
-                // Add marker component
+                // Add marker component to track prefab instances
                 if (instance.GetComponent<AssetBundleInstance>() == null)
                     instance.AddComponent<AssetBundleInstance>();
 
+                // Set parent if GroupParent is assigned
                 if (GroupParent != null)
                     instance.transform.SetParent(GroupParent, true);
 
+                // Track prefab for scene management
                 if (!sceneDataHandlerScript.prefabList.Contains(instance))
                     sceneDataHandlerScript.prefabList.Add(instance);
 
+                // Mark prefab as loaded to prevent duplicates
                 loadedPrefabNames.Add(request.prefabName);
 
-                // Categorize prefab
+                // Categorize prefab based on object type
                 switch (request.objectType)
                 {
                     case ObjectType.chair:
@@ -174,20 +191,22 @@ public class DynamicPathAssetBundleLoader : MonoBehaviour
             }
         }
 
-        isDoneLoading = true;
+        isDoneLoading = true; // Mark loading as done
     }
 
+    // Unload all AssetBundles but keep instantiated objects alive
     public void UnloadAllBundles()
     {
         foreach (var kvp in loadedBundles)
         {
-            kvp.Value.Unload(false); // keep instantiated objects alive
+            kvp.Value.Unload(false); // false means keep instantiated objects alive
             Debug.Log($"[Loader] Bundle '{kvp.Key}' unloaded manually.");
         }
         loadedBundles.Clear();
         loadedPrefabNames.Clear();
     }
 
+    // Unload a specific AssetBundle and remove its prefab names from tracking
     public void UnloadBundle(string bundleName)
     {
         if (loadedBundles.ContainsKey(bundleName))
@@ -197,20 +216,20 @@ public class DynamicPathAssetBundleLoader : MonoBehaviour
             Debug.Log($"[Loader] Bundle '{bundleName}' unloaded manually.");
         }
 
-        // Remove any prefab names from this bundle
+        // Remove prefab names associated with this bundle
         loadedPrefabNames.RemoveWhere(name => name.StartsWith(bundleName));
     }
 }
 
-// Helper extension to safely append objects to arrays
+// Extension method to append an item to an array only if it doesn't exist
 public static class ArrayExtensions
 {
     public static T[] AppendIfMissing<T>(this T[] array, T item)
     {
         if (!array.Contains(item))
         {
-            return array.Concat(new T[] { item }).ToArray();
+            return array.Concat(new T[] { item }).ToArray(); // Return new array with item added
         }
-        return array;
+        return array; // Return original array if item already exists
     }
 }
