@@ -65,8 +65,8 @@ public class DynamicPathAssetBundleLoader : MonoBehaviour
         Debug.Log("Finish Loading!");
 
         // After all bundles are loaded, optionally trigger default scene setup
-        if (sceneDataHandlerScript != null)
-            sceneDataHandlerScript.LoadDefaultScene();
+      //  if (sceneDataHandlerScript != null)
+         //   sceneDataHandlerScript.LoadDefaultScene();
     }
 
     // Context menu function to manually test loading the first request

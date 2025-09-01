@@ -33,12 +33,15 @@ public class SceneDataHandler : MonoBehaviour
 
     [Header("Popup")]
     public GameObject SaveLoadPopupPanel;
+    public GameObject TemplateListPopupPanel;
+
 
     public FirstPersonController FPS;
 
     void Awake()
     {
         prefabList = prefabList ?? new List<GameObject>();
+        TemplateListPopupPanel.SetActive(true);
         loadingCanvasGroup.gameObject.SetActive(true);
     }
 
@@ -69,6 +72,31 @@ public class SceneDataHandler : MonoBehaviour
         else
             Debug.LogWarning("No backend endpoint set for default scene loading.");
     }
+
+    // ====================
+    // LOAD SCENE FROM CLOUD (triggered by button)
+    // ====================
+    public void LoadSceneFromCloud(string fullPath)
+    {
+        // Split into folder + filename
+        int lastSlash = fullPath.LastIndexOf('/');
+        if (lastSlash < 0)
+        {
+            Debug.LogError("[SceneDataHandler] Invalid file path: " + fullPath);
+            return;
+        }
+
+        folderPath = fullPath.Substring(0, lastSlash);
+        fileName = fullPath.Substring(lastSlash + 1).Replace(".json", "");
+
+        // Start fetching just like your default loader
+        if (!string.IsNullOrEmpty(readJsonEndpoint))
+            StartCoroutine(FetchSceneFromBackendWithFallback());
+        else
+            Debug.LogWarning("No backend endpoint set for scene loading.");
+    }
+
+
 
     private IEnumerator FetchSceneFromBackendWithFallback()
     {
@@ -448,4 +476,42 @@ public class SceneDataHandler : MonoBehaviour
     {
         public List<ObjectData> objects = new List<ObjectData>();
     }
+
+    public void EmptyProject()
+    {
+        TemplateListPopupPanel.SetActive(false);
+        loadingCanvasGroup.gameObject.SetActive(false);
+        FPS.enabled = true;
+
+        // Find all SaveableObjects and AssetBundleInstances
+        var saveables = FindObjectsOfType<SaveableObject>(true); // include inactive
+        var assetBundles = FindObjectsOfType<AssetBundleInstance>(true);
+
+        // Destroy all SaveableObjects (unless part of prefabList)
+        foreach (var saveable in saveables)
+        {
+            if (saveable == null) continue;
+            GameObject obj = saveable.gameObject;
+
+            // Preserve prefabList originals
+            if (prefabList.Contains(obj))
+                continue;
+
+            Destroy(obj);
+        }
+
+        // Destroy all AssetBundleInstances (unless part of prefabList)
+        foreach (var ab in assetBundles)
+        {
+            if (ab == null) continue;
+            GameObject obj = ab.gameObject;
+
+            // Preserve prefabList originals
+            if (prefabList.Contains(obj))
+                continue;
+
+            Destroy(obj);
+        }
+    }
+
 }
