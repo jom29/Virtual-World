@@ -4,6 +4,7 @@ using UnityEngine;
 using UnityEngine.Networking;
 using TMPro;
 using UnityEngine.UI;
+using System.Linq;
 
 public class SceneDataHandler : MonoBehaviour
 {
@@ -174,45 +175,91 @@ public class SceneDataHandler : MonoBehaviour
     public void SaveScene()
     {
         SceneData data = new SceneData();
+
+        // Collect all SaveableObjects
         var saveables = FindObjectsOfType<SaveableObject>();
 
         foreach (var saveable in saveables)
         {
             var obj = saveable.gameObject;
 
-            string prefabName = string.IsNullOrEmpty(saveable.id) ? obj.name : saveable.id;
-            if (prefabName.EndsWith("(Clone)"))
-                prefabName = prefabName.Replace("(Clone)", "").Trim();
+            bool isAssetBundleInstance = obj.GetComponent<AssetBundleInstance>() != null;
 
+            // Determine prefab name
+            string prefabName;
+            if (isAssetBundleInstance)
+            {
+                // For AB objects: keep the raw name/id (don’t strip)
+                prefabName = string.IsNullOrEmpty(saveable.id) ? obj.name : saveable.id;
+            }
+            else
+            {
+                // For prefabList objects: normalize
+                prefabName = string.IsNullOrEmpty(saveable.id) ? obj.name : saveable.id;
+                if (prefabName.EndsWith("(Clone)"))
+                    prefabName = prefabName.Replace("(Clone)", "").Trim();
+            }
+
+            bool matchesPrefabListByName =
+                prefabList != null &&
+                prefabList.Any(p =>
+                    p != null &&
+                    (
+                        p.name == prefabName ||
+                        p.name.Replace("(Clone)", "").Trim() == prefabName
+                    )
+                );
+
+            // ✅ Only save if it's an AssetBundleInstance OR matches prefabList
+            if (!isAssetBundleInstance && !matchesPrefabListByName)
+                continue;
+
+            // ✅ Force saveable.id to prefabName
             saveable.id = prefabName;
 
+            // ✅ Always save transform
             ObjectData objData = new ObjectData
             {
                 prefabName = prefabName,
-                position = new float[] { obj.transform.position.x, obj.transform.position.y, obj.transform.position.z },
-                rotation = new float[] { obj.transform.eulerAngles.x, obj.transform.eulerAngles.y, obj.transform.eulerAngles.z },
-                scale = new float[] { obj.transform.localScale.x, obj.transform.localScale.y, obj.transform.localScale.z }
+                position = new float[]
+                {
+                obj.transform.position.x,
+                obj.transform.position.y,
+                obj.transform.position.z
+                },
+                rotation = new float[]
+                {
+                obj.transform.eulerAngles.x,
+                obj.transform.eulerAngles.y,
+                obj.transform.eulerAngles.z
+                },
+                scale = new float[]
+                {
+                obj.transform.localScale.x,
+                obj.transform.localScale.y,
+                obj.transform.localScale.z
+                }
             };
 
             data.objects.Add(objData);
         }
 
-        // Convert the SceneData to JSON string
-        string sceneJson = JsonUtility.ToJson(data, true); // pretty print
+        // Your existing wrap + send (unchanged)
+        string sceneJson = JsonUtility.ToJson(data, true);
 
-        // Wrap it in SaveSceneRequest to match cloud function
         SaveSceneRequest requestData = new SaveSceneRequest
         {
             folderPath = folderPath,
-            fileName = fileName + ".json", // include .json extension
+            fileName = fileName + ".json",
             content = sceneJson
         };
 
         string finalJson = JsonUtility.ToJson(requestData);
-
-        // Send to backend
         StartCoroutine(SaveSceneToBackend(finalJson));
     }
+
+
+
 
     private IEnumerator SaveSceneToBackend(string wrappedJson)
     {
@@ -288,6 +335,7 @@ public class SceneDataHandler : MonoBehaviour
             return;
         }
 
+        // Cleanup rule: destroy those NOT in prefabList (by reference)
         foreach (var saveable in FindObjectsOfType<SaveableObject>())
         {
             if (!prefabList.Contains(saveable.gameObject))
@@ -296,25 +344,68 @@ public class SceneDataHandler : MonoBehaviour
 
         foreach (var objData in data.objects)
         {
-            GameObject prefab = prefabList.Find(p => p.name == objData.prefabName);
+            // Find prefab/template by name
+            GameObject prefab = null;
+            if (prefabList != null)
+            {
+                prefab = prefabList.Find(p => p != null && p.name == objData.prefabName);
+                if (prefab == null)
+                    prefab = prefabList.Find(p => p != null && p.name.Replace("(Clone)", "").Trim() == objData.prefabName);
+            }
+
             if (prefab == null)
             {
                 Debug.LogWarning("Prefab not found: " + objData.prefabName);
                 continue;
             }
 
+            // Create instance
             GameObject instance = Instantiate(prefab);
-            instance.transform.position = new Vector3(objData.position[0], objData.position[1], objData.position[2]);
-            instance.transform.eulerAngles = new Vector3(objData.rotation[0], objData.rotation[1], objData.rotation[2]);
-            instance.transform.localScale = new Vector3(objData.scale[0], objData.scale[1], objData.scale[2]);
 
+            // Apply transform data
+            instance.transform.SetPositionAndRotation(
+                new Vector3(objData.position[0], objData.position[1], objData.position[2]),
+                Quaternion.Euler(objData.rotation[0], objData.rotation[1], objData.rotation[2])
+            );
+            instance.transform.localScale = new Vector3(
+                objData.scale[0],
+                objData.scale[1],
+                objData.scale[2]
+            );
+
+            // Ensure SaveableObject exists
             var saveable = instance.GetComponent<SaveableObject>() ?? instance.AddComponent<SaveableObject>();
             saveable.id = objData.prefabName;
+
+            // Handle AssetBundleInstance correctly
+            var prefabAssetBundle = prefab.GetComponent<AssetBundleInstance>();
+            if (prefabAssetBundle != null)
+            {
+                // Ensure clone has AssetBundleInstance
+                var cloneAssetBundle = instance.GetComponent<AssetBundleInstance>();
+                if (cloneAssetBundle == null)
+                    cloneAssetBundle = instance.AddComponent<AssetBundleInstance>();
+
+                // ✅ Apply transform data again (overwrite prefab’s baked values)
+                instance.transform.SetPositionAndRotation(
+                    new Vector3(objData.position[0], objData.position[1], objData.position[2]),
+                    Quaternion.Euler(objData.rotation[0], objData.rotation[1], objData.rotation[2])
+                );
+                instance.transform.localScale = new Vector3(
+                    objData.scale[0],
+                    objData.scale[1],
+                    objData.scale[2]
+                );
+            }
         }
 
         if (loadingCanvasGroup != null)
             StartCoroutine(FadeOutLoadingPanel());
     }
+
+
+
+
 
     private IEnumerator FadeOutLoadingPanel()
     {
