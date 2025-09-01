@@ -3,12 +3,13 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Networking;
 using TMPro;
+using UnityEngine.UI;
 
 public class SceneDataHandler : MonoBehaviour
 {
     [Header("Cloud Function Endpoints")]
     public string readJsonEndpoint;   // For loading JSON
-    public string saveJsonEndpoint;   // For saving JSON
+    public string saveJsonEndpoint;   // For saving JSON (existing logic)
 
     [Header("Prefab Management")]
     public List<GameObject> prefabList;
@@ -21,13 +22,41 @@ public class SceneDataHandler : MonoBehaviour
     public TextMeshProUGUI loadingText;
     public float fadeDuration = 1.5f;
 
-    public string fileName = "sceneData"; // Default file name
+    [Header("Scene File Settings")]
+    public string folderPath = "";     // NEW: folder path in cloud storage
+    public string fileName = "sceneData"; // Input name without .json
+
+    [Header("InputFields")]
+    public InputField fileNameInput;
+    public InputField folderPathInput;
+
+    [Header("Popup")]
+    public GameObject SaveLoadPopupPanel;
+
+    public FirstPersonController FPS;
 
     void Awake()
     {
         prefabList = prefabList ?? new List<GameObject>();
         loadingCanvasGroup.gameObject.SetActive(true);
     }
+
+    public void SaveLoadPopup()
+    {
+        SaveLoadPopupPanel.SetActive(true);
+        FPS.enabled = false;
+
+    }
+
+    public void InputFieldSetData()
+    {
+        fileName = fileNameInput.text;
+        folderPath = folderPathInput.text;
+        SaveScene();
+        FPS.enabled = true;
+        SaveLoadPopupPanel.SetActive(false);
+    }
+
 
     // ====================
     // DEFAULT LOAD
@@ -42,29 +71,106 @@ public class SceneDataHandler : MonoBehaviour
 
     private IEnumerator FetchSceneFromBackendWithFallback()
     {
-        using (UnityWebRequest request = UnityWebRequest.Get(readJsonEndpoint))
+        var requestData = new ReadJsonRequest
         {
-            yield return request.SendWebRequest();
+            folderPath = folderPath,
+            fileName = fileName + ".json"
+        };
+        string jsonBody = JsonUtility.ToJson(requestData);
 
-            if (request.result != UnityWebRequest.Result.Success)
+        using (UnityWebRequest www = new UnityWebRequest(readJsonEndpoint, "POST"))
+        {
+            byte[] bodyRaw = System.Text.Encoding.UTF8.GetBytes(jsonBody);
+            www.uploadHandler = new UploadHandlerRaw(bodyRaw);
+            www.downloadHandler = new DownloadHandlerBuffer();
+            www.SetRequestHeader("Content-Type", "application/json");
+
+            Debug.Log("[SceneDataHandler] Sending request to: " + readJsonEndpoint);
+            Debug.Log("[SceneDataHandler] Request body: " + jsonBody);
+
+            yield return www.SendWebRequest();
+
+            string jsonToLoad = null;
+
+            if (www.result == UnityWebRequest.Result.Success)
             {
-                Debug.LogWarning("Backend unavailable, falling back to local sceneData.json. Error: " + request.error);
-                TextAsset jsonAsset = Resources.Load<TextAsset>("sceneData");
-                if (jsonAsset != null)
-                    LoadSceneFromJson(jsonAsset.text);
-                else
-                    Debug.LogError("No backend and no local sceneData.json found!");
+                Debug.Log("[SceneDataHandler] Cloud response: " + www.downloadHandler.text);
+
+                try
+                {
+                    var wrapper = JsonUtility.FromJson<ReadJsonResponseWrapper>(www.downloadHandler.text);
+
+                    if (wrapper != null && wrapper.content != null)
+                    {
+                        jsonToLoad = JsonUtility.ToJson(wrapper.content);
+                        Debug.Log("[SceneDataHandler] Scene JSON loaded from cloud.");
+                    }
+                    else
+                    {
+                        Debug.LogWarning("[SceneDataHandler] Wrapper or content null. Using raw response.");
+                        jsonToLoad = www.downloadHandler.text;
+                    }
+                }
+                catch (System.Exception ex)
+                {
+                    Debug.LogError("[SceneDataHandler] Failed to parse cloud JSON: " + ex.Message);
+                    jsonToLoad = www.downloadHandler.text;
+                }
+
+                // Save a local copy for fallback
+                string localPath = System.IO.Path.Combine(Application.persistentDataPath, fileName + ".json");
+                System.IO.File.WriteAllText(localPath, jsonToLoad);
             }
             else
             {
-                LoadSceneFromJson(request.downloadHandler.text);
+                Debug.LogWarning("[SceneDataHandler] Backend unavailable: " + www.error);
+
+                // Try persistent path fallback
+                string localPath = System.IO.Path.Combine(Application.persistentDataPath, fileName + ".json");
+                if (System.IO.File.Exists(localPath))
+                {
+                    Debug.Log("[SceneDataHandler] Loading scene from persistent path: " + localPath);
+                    jsonToLoad = System.IO.File.ReadAllText(localPath);
+                }
+                else
+                {
+                    // Try Resources fallback
+                    TextAsset jsonAsset = Resources.Load<TextAsset>(fileName);
+                    if (jsonAsset != null)
+                    {
+                        Debug.Log("[SceneDataHandler] Loading scene from Resources: " + fileName);
+                        jsonToLoad = jsonAsset.text;
+                    }
+                    else
+                    {
+                        Debug.LogError("[SceneDataHandler] Failed to load fallback JSON. Scene cannot be loaded.");
+                    }
+                }
+            }
+
+            // Finally load scene if we have JSON
+            if (!string.IsNullOrEmpty(jsonToLoad))
+            {
+                LoadSceneFromJson(jsonToLoad);
             }
         }
     }
 
-    // ====================
-    // SAVE SCENE
-    // ====================
+
+    [System.Serializable]
+    private class ReadJsonRequest
+    {
+        public string folderPath;
+        public string fileName;
+    }
+
+    [System.Serializable]
+    private class ReadJsonResponseWrapper
+    {
+        public string filePath;
+        public SceneData content;
+    }
+
     public void SaveScene()
     {
         SceneData data = new SceneData();
@@ -74,9 +180,15 @@ public class SceneDataHandler : MonoBehaviour
         {
             var obj = saveable.gameObject;
 
+            string prefabName = string.IsNullOrEmpty(saveable.id) ? obj.name : saveable.id;
+            if (prefabName.EndsWith("(Clone)"))
+                prefabName = prefabName.Replace("(Clone)", "").Trim();
+
+            saveable.id = prefabName;
+
             ObjectData objData = new ObjectData
             {
-                prefabName = saveable.id,
+                prefabName = prefabName,
                 position = new float[] { obj.transform.position.x, obj.transform.position.y, obj.transform.position.z },
                 rotation = new float[] { obj.transform.eulerAngles.x, obj.transform.eulerAngles.y, obj.transform.eulerAngles.z },
                 scale = new float[] { obj.transform.localScale.x, obj.transform.localScale.y, obj.transform.localScale.z }
@@ -85,22 +197,28 @@ public class SceneDataHandler : MonoBehaviour
             data.objects.Add(objData);
         }
 
-        string json = JsonUtility.ToJson(data, true);
+        // Convert the SceneData to JSON string
+        string sceneJson = JsonUtility.ToJson(data, true); // pretty print
 
-        if (string.IsNullOrEmpty(saveJsonEndpoint))
+        // Wrap it in SaveSceneRequest to match cloud function
+        SaveSceneRequest requestData = new SaveSceneRequest
         {
-            Debug.LogError("Save JSON endpoint not set.");
-            return;
-        }
+            folderPath = folderPath,
+            fileName = fileName + ".json", // include .json extension
+            content = sceneJson
+        };
 
-        StartCoroutine(SaveSceneToBackend(json, fileName));
+        string finalJson = JsonUtility.ToJson(requestData);
+
+        // Send to backend
+        StartCoroutine(SaveSceneToBackend(finalJson));
     }
 
-    private IEnumerator SaveSceneToBackend(string jsonData, string filename)
+    private IEnumerator SaveSceneToBackend(string wrappedJson)
     {
         using (UnityWebRequest request = new UnityWebRequest(saveJsonEndpoint, "POST"))
         {
-            byte[] bodyRaw = System.Text.Encoding.UTF8.GetBytes(jsonData);
+            byte[] bodyRaw = System.Text.Encoding.UTF8.GetBytes(wrappedJson);
             request.uploadHandler = new UploadHandlerRaw(bodyRaw);
             request.downloadHandler = new DownloadHandlerBuffer();
             request.SetRequestHeader("Content-Type", "application/json");
@@ -110,29 +228,34 @@ public class SceneDataHandler : MonoBehaviour
             if (request.result != UnityWebRequest.Result.Success)
             {
                 Debug.LogError("Failed to save scene JSON: " + request.error);
-                if (saveSceneTextNotification != null)
-                {
-                    saveSceneTextNotification.gameObject.SetActive(true);
-                    saveSceneTextNotification.text = "❌ Failed to save scene JSON!";
-                    yield return new WaitForSeconds(3f);
-                    saveSceneTextNotification.text = "";
-                    saveSceneTextNotification.gameObject.SetActive(false);
-                }
             }
             else
             {
                 Debug.Log("Scene JSON successfully saved: " + request.downloadHandler.text);
+
                 if (saveSceneTextNotification != null)
-                {
-                    saveSceneTextNotification.gameObject.SetActive(true);
-                    saveSceneTextNotification.text = "✅ Scene JSON saved!";
-                    yield return new WaitForSeconds(3f);
-                    saveSceneTextNotification.text = "";
-                    saveSceneTextNotification.gameObject.SetActive(false);
-                }
+                    saveSceneTextNotification.text = "Scene saved successfully!";
             }
         }
     }
+
+
+    // ====================
+    // SAVE SCENE REQUEST CLASS
+    // ====================
+    [System.Serializable]
+    private class SaveSceneRequest
+    {
+        public string folderPath;
+        public string fileName;
+        public string content;
+    }
+
+
+
+
+
+
 
     // ====================
     // LOAD SCENE (called from other scripts)
