@@ -228,6 +228,11 @@ public class FirstPersonController : MonoBehaviour
         }
     }
 
+    public void CancelEdit()
+    {
+        StartCoroutine(disableAuthorizationPanelUponFailed());
+    }
+
     private void Update()
     {
         // ACCESSIBLE IN VIEW MODE ONLY
