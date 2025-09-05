@@ -238,17 +238,23 @@ public class FirstPersonController : MonoBehaviour
         // ACCESSIBLE IN VIEW MODE ONLY
         if(!isEditable)
         {
+            /*
             if(Input.GetKeyDown(KeyCode.L))
             {
                 sceneDataHandler.LoadScene();
             }
+            */
+
+            if (Input.GetKeyDown(KeyCode.T))
+            {
+                isRotatingCamera = false;
+                autorizationPanel.SetActive(true);
+            }
         }
 
-        if(Input.GetKeyDown(KeyCode.T))
-        {
-            isRotatingCamera = false;
-            autorizationPanel.SetActive(true);
-        }
+
+        
+      
 
 
         RotateCameraController();
