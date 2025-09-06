@@ -68675,7 +68675,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 1714868757}
-  - component: {fileID: 1714868758}
+  - component: {fileID: 1714868759}
   m_Layer: 0
   m_Name: AssetBundle
   m_TagString: Untagged
@@ -68698,7 +68698,7 @@ Transform:
   m_Children: []
   m_Father: {fileID: 824526180}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &1714868758
+--- !u!114 &1714868759
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -68707,31 +68707,19 @@ MonoBehaviour:
   m_GameObject: {fileID: 1714868756}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 898398bb476487346afd0fa2a1a8bf85, type: 3}
+  m_Script: {fileID: 11500000, guid: d1a33db5655aa9944ba240ad0b6d79bd, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
   sceneDataHandlerScript: {fileID: 824526181}
   furnitureSelectorScript: {fileID: 1973871239}
-  bundleRequests:
-  - folderPath: Assetbundle/Chairs
-    bundleName: mycube
-    prefabName: Cube
-    instantiatePosition: {x: 0, y: -2, z: 0}
-    objectType: 1
-  - folderPath: Assetbundle/Chairs
-    bundleName: mysphere
-    prefabName: Sphere
-    instantiatePosition: {x: 0, y: -4, z: 0}
-    objectType: 1
-  - folderPath: Assetbundle/Chairs
-    bundleName: mycapsule
-    prefabName: Capsule
-    instantiatePosition: {x: 0, y: -6, z: 0}
-    objectType: 1
-  isDoneLoading: 0
-  functionUrl: https://us-central1-mywebgl-467310.cloudfunctions.net/getAssetBundleCORS
+  listEndpoint: https://us-central1-mywebgl-467310.cloudfunctions.net/listAssetBundles
+  functionUrl: https://us-central1-mywebgl-467310.cloudfunctions.net/getAssetBundleDirect
+  autoLoadOnStart: 1
   instantiatePrefab: 1
+  rootFolder: Assetbundle
   GroupParent: {fileID: 1714868757}
+  bundleRequests: []
+  isDoneLoading: 0
 --- !u!1001 &1718154372
 PrefabInstance:
   m_ObjectHideFlags: 0
